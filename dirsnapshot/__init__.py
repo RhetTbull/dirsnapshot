@@ -1,8 +1,11 @@
-__version__ = "0.1.0"
+import importlib.metadata
+
+__version__ = importlib.metadata.version("dirsnapshot")
 
 from .dirsnapshot import (
     DirDiff,
     DirDiffResults,
+    SnapshotInfo,
     is_snapshot_file,
     snapshot,
     snapshot_memory,
@@ -14,4 +17,5 @@ __all__ = [
     "is_snapshot_file",
     "snapshot_memory",
     "snapshot",
+    "SnapshotInfo",
 ]

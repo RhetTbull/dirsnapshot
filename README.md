@@ -20,7 +20,7 @@ snapshot("/Users/user/Desktop", "/Users/user/Desktop/Desktop.snapshot")
 ...
 
 # compare the current state of the director to the snapshot
-dirdiff = DirDiff("/Users/user/Desktop", "/Users/user/Desktop/Desktop.snapshot")
+dirdiff = DirDiff("/Users/user/Desktop/Desktop.snapshot", "/Users/user/Desktop")
 
 # print report to stdout
 dirdiff.report()
@@ -39,25 +39,29 @@ pip install dirsnapshot
 
 Installing the `dirsnapshot` package will install a command line tool called `dirsnap` that can be used to create snapshots of directories and compare a directory to an existing snapshot.
 
-```bash
-$ dirsnap --help
+```
+usage: dirsnap [-h] [--json] [--snapshot DIRECTORY SNAPSHOT_FILE]
+               [--diff SNAPSHOT_A DIRECTORY_OR_SNAPSHOT_B]
+               [--descr DESCRIPTION] [--identical] [--ignore REGEX]
+               [--no-walk]
 
-usage: dirsnap [-h] [--json] [--snapshot DIRECTORY SNAPSHOT_FILE] [--diff DIRECTORY_OR_SNAPSHOT_A SNAPSHOT_B] [--descr DESCRIPTION] [--identical]
-               [--ignore REGEX] [--no-walk]
-
-Compare a directory to a previously saved snapshot or compare two directory snapshots. You must specify one of --snapshot or --diff. Will show files
-added/removed/modified. Files are considered modified if any of mode, uid, gid, size, or mtime are different.
+Compare a directory to a previously saved snapshot or compare two directory
+snapshots. You must specify one of --snapshot or --diff. Will show files
+added/removed/modified. Files are considered modified if any of mode, uid,
+gid, size, or mtime are different.
 
 options:
   -h, --help            show this help message and exit
   --json, -j            Output as JSON
   --snapshot DIRECTORY SNAPSHOT_FILE, -s DIRECTORY SNAPSHOT_FILE
                         Create snapshot of DIRECTORY at SNAPSHOT_FILE
-  --diff DIRECTORY_OR_SNAPSHOT_A SNAPSHOT_B
-                        Diff DIRECTORY_OR_SNAPSHOT_A against SNAPSHOT_B
+  --diff SNAPSHOT_A DIRECTORY_OR_SNAPSHOT_B
+                        Diff SNAPSHOT_A and DIRECTORY_OR_SNAPSHOT_B
   --descr DESCRIPTION, -d DESCRIPTION
-                        Optional description of snapshot to store with snapshot for use with --snapshot.
-  --identical, -I       Include identical files in report (always included with --json)
+                        Optional description of snapshot to store with
+                        snapshot for use with --snapshot.
+  --identical, -I       Include identical files in report (always included
+                        with --json)
   --ignore REGEX, -i REGEX
                         Ignore files matching REGEX
   --no-walk             Don't walk directories

@@ -8,6 +8,7 @@ This module can be run as a standalone CLI app or included in your project as a 
 """
 
 import datetime
+import importlib.metadata
 import json
 import os
 import sqlite3
@@ -17,7 +18,6 @@ from os import walk as oswalk
 from os.path import exists as pathexists
 from os.path import join as joinpath
 from typing import Callable, Dict, Optional, Tuple
-import importlib.metadata
 
 # Note: os.stat, os.walk, os.path.exists, os.path.join are imported as separate names
 # because this increases performance slightly and these will be called repeatedly to
@@ -31,6 +31,7 @@ __all__ = [
     "is_snapshot_file",
     "snapshot_memory",
     "snapshot",
+    "SnapshotInfo",
 ]
 
 METADATA_SOURCE = "dirsnapshot"
@@ -39,6 +40,8 @@ METADATA_DESCRIPTION = "Directory Snapshot created by dirsnapshot"
 DirDiffResults = namedtuple(
     "DirDiffResults", ["added", "removed", "modified", "identical"]
 )
+
+SnapshotInfo = namedtuple("SnapshotInfo", ["description", "directory", "datetime"])
 
 
 def snapshot(
@@ -231,50 +234,45 @@ def _add_snapshot_db_entry(
 class DirDiff:
     def __init__(
         self,
-        snapshot_a: Optional[str] = None,
-        snapshot_b: Optional[str] = None,
-        dir_b: Optional[str] = None,
+        snapshot_a: str,
+        directory_or_snapshot_b: str,
         walk: bool = True,
         filter_function: Optional[Callable[[str], bool]] = None,
     ):
         """Initialize the DirDiff instance
 
         Args:
-            snapshot_a: path to previous snapshot database of dir_b to compare
-            snapshot_b: path to snapshot database of dir_b to compare snapshot_a to
-            dir_b: path to directory to compare
+            snapshot_a: path to previous snapshot database to compare
+            directory_or_snapshot_b: path to current snapshot database or path to directory to compare snapshot_a to
             walk: if True, walks the directory tree dir_b and recursively adds all files and directories
-
-        Raises:
-            ValueError: if dir_b and snapshot_b are specified at the same time
-            ValueError: if one combination of snapshot_a + dir_b or snapshot_a + snapshot_b is not specified
 
         Note: May be initialized with snapshot_a and dir_b to compare a current directory (dir_b) to previous snapshot (snapshot_a)
         or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newer snapshot (snapshot_b), but not both.
         """
+        self.snapshot_a = snapshot_a
+        if not is_snapshot_file(snapshot_a):
+            raise ValueError(f"{snapshot_a} is not a snapshot database")
 
-        if dir_b and snapshot_b:
-            raise ValueError("Can't specify both dir_b and snapshot_b")
-        if not (dir_b and snapshot_a) and not (snapshot_a and snapshot_b):
+        if os.path.isdir(directory_or_snapshot_b):
+            self.dir_b = directory_or_snapshot_b
+            self.snapshot_b = None
+        elif is_snapshot_file(directory_or_snapshot_b):
+            self.dir_b = ""
+            self.snapshot_b = directory_or_snapshot_b
+        else:
             raise ValueError(
-                "Must specify one combination of snapshot_a + dir_b or snapshot_a + snapshot_b"
+                f"{directory_or_snapshot_b} is not a directory or a snapshot database"
             )
 
-        self.dir_b = dir_b
-        self.snapshot_a = snapshot_a
-        self.snapshot_b = snapshot_b
         self._diff: Optional[DirDiffResults] = None
         self.walk = walk
         self.filter_function = filter_function
 
-        self.dir_b_snapshot_conn = (
-            snapshot_memory(self.dir_b, walk=self.walk) if self.dir_b else None
-        )
-        self.snapshot_a_conn = (
-            sqlite3.connect(self.snapshot_a) if self.snapshot_a else None
-        )
+        self.snapshot_a_conn = sqlite3.connect(self.snapshot_a)
         self.snapshot_b_conn = (
-            sqlite3.connect(self.snapshot_b) if self.snapshot_b else None
+            sqlite3.connect(self.snapshot_b)
+            if self.snapshot_b
+            else snapshot_memory(self.dir_b, walk=self.walk)
         )
 
     def diff(self) -> DirDiffResults:
@@ -283,18 +281,9 @@ class DirDiff:
         Returns:
             diff results as DirDiffResults namedtuple
         """
-
-        if self.dir_b_snapshot_conn:
-            # diffing directory against snapshot
-            self._diff = self._diff_snapshots(
-                self.snapshot_a_conn, self.dir_b_snapshot_conn  # type: ignore
-            )
-        else:
-            # diffing two snapshots
-            self._diff = self._diff_snapshots(
-                self.snapshot_a_conn, self.snapshot_b_conn  # type: ignore
-            )
-
+        self._diff = self._diff_snapshots(
+            self.snapshot_a_conn, self.snapshot_b_conn  # type: ignore
+        )
         return self._diff
 
     def json(self, indent=2) -> str:
@@ -313,20 +302,17 @@ class DirDiff:
 
         if self.dir_b:
             dirpath = self.dir_b
-            dt_a = datetime.datetime.now().isoformat()
-            about_a = f"snapshot created by {__file__} at {dt_a}"
-            _, dt_b, about_b = self.get_snapshot_dirpath_datetime_description(
-                self.snapshot_a_conn  # type: ignore
-            )
+            dt_b = datetime.datetime.now().isoformat()
+            about_b = f"snapshot created by {__file__} at {dt_b}"
+            info_b = SnapshotInfo(description=about_b, directory=dirpath, datetime=dt_b)
+            info_a = self.get_snapshot_info(self.snapshot_a_conn)  # type: ignore
         else:
-            dirpath, dt_a, about_a = self.get_snapshot_dirpath_datetime_description(
-                self.snapshot_a_conn  # type: ignore
-            )
-            _, dt_b, about_b = self.get_snapshot_dirpath_datetime_description(
-                self.snapshot_b_conn  # type: ignore
-            )
+            info_a = self.get_snapshot_info(self.snapshot_a_conn)  # type: ignore
+            info_b = self.get_snapshot_info(self.snapshot_b_conn)  # type: ignore
 
-        print(f"diff '{dirpath}' at {dt_a} ({about_a}) vs {dt_b} ({about_b})")
+        print(
+            f"diff '{info_a.directory}' {info_a.datetime} ({info_a.description}) vs {info_b.datetime} ({info_b.description})"
+        )
         print("Added: ")
         print("\n".join([f"    {f}" for f in diff.added]))
         if diff.added:
@@ -343,23 +329,21 @@ class DirDiff:
             print("Identical: ")
             print("\n".join([f"    {f}" for f in diff.identical]))
 
-    def get_snapshot_dirpath_datetime_description(
-        self, conn: sqlite3.Connection
-    ) -> Tuple[str, str, str]:
-        """Return info about a snapshot.
+    def get_snapshot_info(self, conn: sqlite3.Connection) -> SnapshotInfo:
+        """Return info about a snapshot as a named tuple.
 
         Args:
             conn: sqlite3.Connection to the snapshot database
 
         Returns:
-            (path to directory, datetime string, about string)
+            (description string, path to directory, datetime string)
         """
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT directory, datetime, description FROM about ORDER BY datetime DESC LIMIT 1"
+            "SELECT description, directory, datetime FROM about ORDER BY datetime DESC LIMIT 1"
         )
-        directory, dt, description = cursor.fetchone()
-        return directory, dt, description
+        description, directory, dt = cursor.fetchone()
+        return SnapshotInfo(description, directory, dt)
 
     def _diff_snapshots(
         self, conn_a: sqlite3.Connection, conn_b: sqlite3.Connection

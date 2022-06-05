@@ -104,8 +104,8 @@ def cli():
             if not is_snapshot_file(snapshot_a):
                 parser.error(f"{snapshot_a} is not a snapshot file")
             dirdiff = DirDiff(
-                snapshot_a=snapshot_a,
-                dir_b=snapshot_b,
+                snapshot_a,
+                snapshot_b,
                 walk=not args.no_walk,
                 filter_function=ignore_func,
             )
@@ -114,8 +114,9 @@ def cli():
                 if not is_snapshot_file(f):
                     parser.error(f"{f} is not a snapshot file")
             dirdiff = DirDiff(
-                snapshot_a=snapshot_a,
-                snapshot_b=snapshot_b,
+                snapshot_a,
+                snapshot_b,
+                walk=not args.no_walk,
                 filter_function=ignore_func,
             )
         else:

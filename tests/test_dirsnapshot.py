@@ -89,8 +89,8 @@ def test_dirdiff_two_snapshots(tmp_path: pathlib.Path, capsys):
     snapshot(str(d1), str(snapshot_file2), description="snapshot-2")
 
     dirdiff = DirDiff(
-        snapshot_a=str(snapshot_file1),
-        snapshot_b=str(snapshot_file2),
+        str(snapshot_file1),
+        str(snapshot_file2),
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
@@ -165,8 +165,8 @@ def test_dirdiff_snapshot_dir(tmp_path: pathlib.Path):
     (d1 / "dir_0" / "file_0_10").touch()
 
     dirdiff = DirDiff(
-        snapshot_a=str(snapshot_file1),
-        dir_b=str(d1),
+        str(snapshot_file1),
+        str(d1),
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
@@ -238,8 +238,8 @@ def test_dirdiff_filter_function_two_snapshots(tmp_path: pathlib.Path):
         return True
 
     dirdiff = DirDiff(
-        snapshot_a=str(snapshot_file1),
-        snapshot_b=str(snapshot_file2),
+        str(snapshot_file1),
+        str(snapshot_file2),
         filter_function=filter_function,
     )
     diff = dirdiff.diff()
@@ -307,8 +307,8 @@ def test_dirdiff_filter_function_snapshot_dir(tmp_path: pathlib.Path):
         return True
 
     dirdiff = DirDiff(
-        snapshot_a=str(snapshot_file1),
-        dir_b=str(d1),
+        str(snapshot_file1),
+        str(d1),
         filter_function=filter_function,
     )
     diff = dirdiff.diff()
@@ -380,8 +380,8 @@ def test_snapshot_filter_function(tmp_path: pathlib.Path):
     snapshot(str(d1), str(snapshot_file2), filter_function=filter_function)
 
     dirdiff = DirDiff(
-        snapshot_a=str(snapshot_file1),
-        snapshot_b=str(snapshot_file2),
+        str(snapshot_file1),
+        str(snapshot_file2),
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
@@ -446,8 +446,8 @@ def test_snapshot_no_walk(tmp_path: pathlib.Path):
     snapshot(str(d1), str(snapshot_file2), walk=False)
 
     dirdiff = DirDiff(
-        snapshot_a=str(snapshot_file1),
-        snapshot_b=str(snapshot_file2),
+        str(snapshot_file1),
+        str(snapshot_file2),
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
@@ -484,14 +484,12 @@ def test_dirdiff_valuerror(tmp_path: pathlib.Path):
 
     with pytest.raises(ValueError):
         dirdiff = DirDiff(
-            dir_b=str(d1),
-            snapshot_b=str(snapshot_file2),
+            str(d1),
+            str(snapshot_file2),
         )
 
     with pytest.raises(ValueError):
-        dirdiff = DirDiff(
-            snapshot_a=str(snapshot_file1),
-        )
+        dirdiff = DirDiff(str(snapshot_file1), str(d1 / "file_0"))
 
 
 def test_snapshot_error(tmp_path: pathlib.Path):
