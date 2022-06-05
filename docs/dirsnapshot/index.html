@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>dirsnapshot API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Package <code>dirsnapshot</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">__version__ = &#34;0.1.0&#34;
+
+from .dirsnapshot import (
+    DirDiff,
+    DirDiffResults,
+    is_snapshot_file,
+    snapshot,
+    snapshot_memory,
+)
+
+__all__ = [
+    &#34;DirDiff&#34;,
+    &#34;DirDiffResults&#34;,
+    &#34;is_snapshot_file&#34;,
+    &#34;snapshot_memory&#34;,
+    &#34;snapshot&#34;,
+]</code></pre>
+</details>
+</section>
+<section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="dirsnapshot.dirsnapshot" href="dirsnapshot.html">dirsnapshot.dirsnapshot</a></code></dt>
+<dd>
+<div class="desc"><p>Report differences between a directory and a previous snapshot of the same directory …</p></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="dirsnapshot.is_snapshot_file"><code class="name flex">
+<span>def <span class="ident">is_snapshot_file</span></span>(<span>pathstr: str) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return True if the given path is a snapshot database file, otherwise False</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def is_snapshot_file(pathstr: str) -&gt; bool:
+    &#34;&#34;&#34;Return True if the given path is a snapshot database file, otherwise False&#34;&#34;&#34;
+    pathstr = os.path.abspath(os.path.expanduser(pathstr))
+    try:
+        conn = sqlite3.connect(f&#34;file:{pathstr}?mode=ro&#34;, uri=True)
+        cursor = conn.cursor()
+        return (
+            cursor.execute(
+                &#34;&#34;&#34;
+        SELECT count(*)
+        FROM sqlite_master
+        WHERE type=&#39;table&#39;
+        AND name=&#39;snapshot&#39;;
+        &#34;&#34;&#34;
+            ).fetchone()[0]
+            == 1
+        )
+    except Exception as e:
+        return False</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.snapshot"><code class="name flex">
+<span>def <span class="ident">snapshot</span></span>(<span>dirpath: str, snapshot_db: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a snapshot of a directory</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>dir</code></strong></dt>
+<dd>path to directory to snapshot</dd>
+<dt><strong><code>snapshot_db</code></strong></dt>
+<dd>path to database to write snapshot to</dd>
+<dt><strong><code>walk</code></strong></dt>
+<dd>if True, walk the directory tree and add all files and directories</dd>
+<dt><strong><code>description</code></strong></dt>
+<dd>optional description of the snapshot</dd>
+<dt><strong><code>filter</code></strong></dt>
+<dd>optional function to filter out files and directories; should return True if the file or directory should be included in the snapshot</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<p>ValueError if snapshot_db already exists</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def snapshot(
+    dirpath: str,
+    snapshot_db: str,
+    walk: bool = True,
+    description: Optional[str] = None,
+    filter_function: Optional[Callable[[str], bool]] = None,
+) -&gt; None:
+    &#34;&#34;&#34;Create a snapshot of a directory
+
+    Args:
+        dir: path to directory to snapshot
+        snapshot_db: path to database to write snapshot to
+        walk: if True, walk the directory tree and add all files and directories
+        description: optional description of the snapshot
+        filter: optional function to filter out files and directories; should return True if the file or directory should be included in the snapshot
+
+    Raises:
+        ValueError if snapshot_db already exists
+    &#34;&#34;&#34;
+
+    if pathexists(snapshot_db):
+        raise ValueError(f&#34;Snapshot database {snapshot_db} already exists&#34;)
+
+    conn, cursor = _open_snapshot_db(snapshot_db, dirpath, description)
+    _snapshot(dirpath, walk, conn, cursor, filter_function)</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.snapshot_memory"><code class="name flex">
+<span>def <span class="ident">snapshot_memory</span></span>(<span>dirpath: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> sqlite3.Connection</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a snapshot of a directory in memory</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>dir</code></strong></dt>
+<dd>path to directory to snapshot</dd>
+<dt><strong><code>walk</code></strong></dt>
+<dd>if True, walk the directory tree and add all files and directories</dd>
+<dt><strong><code>description</code></strong></dt>
+<dd>optional description of the snapshot</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>sqlite3.Connection to in-memory database</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def snapshot_memory(
+    dirpath: str,
+    walk: bool = True,
+    description: Optional[str] = None,
+    filter_function: Optional[Callable[[str], bool]] = None,
+) -&gt; sqlite3.Connection:
+    &#34;&#34;&#34;Create a snapshot of a directory in memory
+
+    Args:
+        dir: path to directory to snapshot
+        walk: if True, walk the directory tree and add all files and directories
+        description: optional description of the snapshot
+
+    Returns:
+        sqlite3.Connection to in-memory database
+    &#34;&#34;&#34;
+
+    conn, cursor = _open_snapshot_db(&#34;:memory:&#34;, description)
+    _snapshot(dirpath, walk, conn, cursor, filter_function)
+    return conn</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="dirsnapshot.DirDiff"><code class="flex name class">
+<span>class <span class="ident">DirDiff</span></span>
+<span>(</span><span>snapshot_a: Optional[str] = None, snapshot_b: Optional[str] = None, dir_b: Optional[str] = None, walk: bool = True, filter_function: Optional[Callable[[str], bool]] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Initialize the DirDiff instance</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>snapshot_a</code></strong></dt>
+<dd>path to previous snapshot database of dir_b to compare</dd>
+<dt><strong><code>snapshot_b</code></strong></dt>
+<dd>path to snapshot database of dir_b to compare snapshot_a to</dd>
+<dt><strong><code>dir_b</code></strong></dt>
+<dd>path to directory to compare</dd>
+<dt><strong><code>walk</code></strong></dt>
+<dd>if True, walks the directory tree dir_b and recursively adds all files and directories</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>if dir_b and snapshot_b are specified at the same time</dd>
+<dt><code>ValueError</code></dt>
+<dd>if one combination of snapshot_a + dir_b or snapshot_a + snapshot_b is not specified</dd>
+</dl>
+<p>Note: May be initialized with snapshot_a and dir_b to compare a current directory (dir_b) to previous snapshot (snapshot_a)
+or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newer snapshot (snapshot_b), but not both.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DirDiff:
+    def __init__(
+        self,
+        snapshot_a: Optional[str] = None,
+        snapshot_b: Optional[str] = None,
+        dir_b: Optional[str] = None,
+        walk: bool = True,
+        filter_function: Optional[Callable[[str], bool]] = None,
+    ):
+        &#34;&#34;&#34;Initialize the DirDiff instance
+
+        Args:
+            snapshot_a: path to previous snapshot database of dir_b to compare
+            snapshot_b: path to snapshot database of dir_b to compare snapshot_a to
+            dir_b: path to directory to compare
+            walk: if True, walks the directory tree dir_b and recursively adds all files and directories
+
+        Raises:
+            ValueError: if dir_b and snapshot_b are specified at the same time
+            ValueError: if one combination of snapshot_a + dir_b or snapshot_a + snapshot_b is not specified
+
+        Note: May be initialized with snapshot_a and dir_b to compare a current directory (dir_b) to previous snapshot (snapshot_a)
+        or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newer snapshot (snapshot_b), but not both.
+        &#34;&#34;&#34;
+
+        if dir_b and snapshot_b:
+            raise ValueError(&#34;Can&#39;t specify both dir_b and snapshot_b&#34;)
+        if not (dir_b and snapshot_a) and not (snapshot_a and snapshot_b):
+            raise ValueError(
+                &#34;Must specify one combination of snapshot_a + dir_b or snapshot_a + snapshot_b&#34;
+            )
+
+        self.dir_b = dir_b
+        self.snapshot_a = snapshot_a
+        self.snapshot_b = snapshot_b
+        self._diff: Optional[DirDiffResults] = None
+        self.walk = walk
+        self.filter_function = filter_function
+
+        self.dir_b_snapshot_conn = (
+            snapshot_memory(self.dir_b, walk=self.walk) if self.dir_b else None
+        )
+        self.snapshot_a_conn = (
+            sqlite3.connect(self.snapshot_a) if self.snapshot_a else None
+        )
+        self.snapshot_b_conn = (
+            sqlite3.connect(self.snapshot_b) if self.snapshot_b else None
+        )
+
+    def diff(self) -&gt; DirDiffResults:
+        &#34;&#34;&#34;Compare the current directory or snapshot to the previous snapshot
+
+        Returns:
+            diff results as DirDiffResults namedtuple
+        &#34;&#34;&#34;
+
+        if self.dir_b_snapshot_conn:
+            # diffing directory against snapshot
+            self._diff = self._diff_snapshots(
+                self.snapshot_a_conn, self.dir_b_snapshot_conn  # type: ignore
+            )
+        else:
+            # diffing two snapshots
+            self._diff = self._diff_snapshots(
+                self.snapshot_a_conn, self.snapshot_b_conn  # type: ignore
+            )
+
+        return self._diff
+
+    def json(self, indent=2) -&gt; str:
+        &#34;&#34;&#34;Return the diff results as JSON&#34;&#34;&#34;
+
+        return json.dumps(self.diff()._asdict(), indent=indent)
+
+    def report(self, include_identical=False) -&gt; None:
+        &#34;&#34;&#34;Print a report of the diff to stdout.
+
+        Args:
+            include_identical: if True, print files that are identical
+        &#34;&#34;&#34;
+
+        diff = self.diff()
+
+        if self.dir_b:
+            dirpath = self.dir_b
+            dt_a = datetime.datetime.now().isoformat()
+            about_a = f&#34;snapshot created by {__file__} at {dt_a}&#34;
+            _, dt_b, about_b = self.get_snapshot_dirpath_datetime_description(
+                self.snapshot_a_conn  # type: ignore
+            )
+        else:
+            dirpath, dt_a, about_a = self.get_snapshot_dirpath_datetime_description(
+                self.snapshot_a_conn  # type: ignore
+            )
+            _, dt_b, about_b = self.get_snapshot_dirpath_datetime_description(
+                self.snapshot_b_conn  # type: ignore
+            )
+
+        print(f&#34;diff &#39;{dirpath}&#39; at {dt_a} ({about_a}) vs {dt_b} ({about_b})&#34;)
+        print(&#34;Added: &#34;)
+        print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.added]))
+        if diff.added:
+            print()
+        print(&#34;Removed: &#34;)
+        print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.removed]))
+        if diff.removed:
+            print()
+        print(&#34;Modified: &#34;)
+        print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.modified]))
+        if diff.modified and include_identical:
+            print()
+        if include_identical:
+            print(&#34;Identical: &#34;)
+            print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.identical]))
+
+    def get_snapshot_dirpath_datetime_description(
+        self, conn: sqlite3.Connection
+    ) -&gt; Tuple[str, str, str]:
+        &#34;&#34;&#34;Return info about a snapshot.
+
+        Args:
+            conn: sqlite3.Connection to the snapshot database
+
+        Returns:
+            (path to directory, datetime string, about string)
+        &#34;&#34;&#34;
+        cursor = conn.cursor()
+        cursor.execute(
+            &#34;SELECT directory, datetime, description FROM about ORDER BY datetime DESC LIMIT 1&#34;
+        )
+        directory, dt, description = cursor.fetchone()
+        return directory, dt, description
+
+    def _diff_snapshots(
+        self, conn_a: sqlite3.Connection, conn_b: sqlite3.Connection
+    ) -&gt; DirDiffResults:
+        &#34;&#34;&#34;Diff two database snapshots
+
+        Args:
+            conn_a: Connection to snapshot a db (the previous snapshot)
+            conn_b: Connection to snapshot b db (the current snapshot)
+
+        Returns:
+            DirDiffResults namedtuple
+        &#34;&#34;&#34;
+        diffresults: Dict = {
+            &#34;added&#34;: [],
+            &#34;removed&#34;: [],
+            &#34;modified&#34;: [],
+            &#34;identical&#34;: [],
+        }
+        cursor_a = conn_a.cursor()
+        cursor_b = conn_b.cursor()
+        paths_b = {}
+        for row in cursor_b.execute(&#34;SELECT * FROM snapshot&#34;):
+            pathstr, is_dir, is_file, st_mode, st_uid, st_gid, st_size, st_mtime = row
+            if self.filter_function and not self.filter_function(pathstr):
+                continue
+            paths_b[pathstr] = 1
+            cursor_a.execute(&#34;&#34;&#34;SELECT * FROM snapshot WHERE path = ?&#34;&#34;&#34;, (pathstr,))
+            if row_b := cursor_a.fetchone():
+                # TODO: make this a compare function that can be passed in
+                if (
+                    row_b[1] != is_dir
+                    or row_b[2] != is_file
+                    or row_b[3] != st_mode
+                    or row_b[4] != st_uid
+                    or row_b[5] != st_gid
+                    or row_b[6] != st_size
+                    or row_b[7] != st_mtime
+                ):
+                    diffresults[&#34;modified&#34;].append(pathstr)
+                else:
+                    diffresults[&#34;identical&#34;].append(pathstr)
+            else:
+                diffresults[&#34;added&#34;].append(pathstr)
+        for row in cursor_a.execute(&#34;SELECT path FROM SNAPSHOT&#34;):
+            if self.filter_function and not self.filter_function(row[0]):
+                continue
+            if row[0] not in paths_b:
+                diffresults[&#34;removed&#34;].append(row[0])
+
+        return DirDiffResults(**diffresults)</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="dirsnapshot.DirDiff.diff"><code class="name flex">
+<span>def <span class="ident">diff</span></span>(<span>self) ‑> <a title="dirsnapshot.dirsnapshot.DirDiffResults" href="dirsnapshot.html#dirsnapshot.dirsnapshot.DirDiffResults">DirDiffResults</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Compare the current directory or snapshot to the previous snapshot</p>
+<h2 id="returns">Returns</h2>
+<p>diff results as DirDiffResults namedtuple</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def diff(self) -&gt; DirDiffResults:
+    &#34;&#34;&#34;Compare the current directory or snapshot to the previous snapshot
+
+    Returns:
+        diff results as DirDiffResults namedtuple
+    &#34;&#34;&#34;
+
+    if self.dir_b_snapshot_conn:
+        # diffing directory against snapshot
+        self._diff = self._diff_snapshots(
+            self.snapshot_a_conn, self.dir_b_snapshot_conn  # type: ignore
+        )
+    else:
+        # diffing two snapshots
+        self._diff = self._diff_snapshots(
+            self.snapshot_a_conn, self.snapshot_b_conn  # type: ignore
+        )
+
+    return self._diff</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.DirDiff.get_snapshot_dirpath_datetime_description"><code class="name flex">
+<span>def <span class="ident">get_snapshot_dirpath_datetime_description</span></span>(<span>self, conn: sqlite3.Connection) ‑> Tuple[str, str, str]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return info about a snapshot.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>conn</code></strong></dt>
+<dd>sqlite3.Connection to the snapshot database</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>(path to directory, datetime string, about string)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_snapshot_dirpath_datetime_description(
+    self, conn: sqlite3.Connection
+) -&gt; Tuple[str, str, str]:
+    &#34;&#34;&#34;Return info about a snapshot.
+
+    Args:
+        conn: sqlite3.Connection to the snapshot database
+
+    Returns:
+        (path to directory, datetime string, about string)
+    &#34;&#34;&#34;
+    cursor = conn.cursor()
+    cursor.execute(
+        &#34;SELECT directory, datetime, description FROM about ORDER BY datetime DESC LIMIT 1&#34;
+    )
+    directory, dt, description = cursor.fetchone()
+    return directory, dt, description</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.DirDiff.json"><code class="name flex">
+<span>def <span class="ident">json</span></span>(<span>self, indent=2) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return the diff results as JSON</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def json(self, indent=2) -&gt; str:
+    &#34;&#34;&#34;Return the diff results as JSON&#34;&#34;&#34;
+
+    return json.dumps(self.diff()._asdict(), indent=indent)</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.DirDiff.report"><code class="name flex">
+<span>def <span class="ident">report</span></span>(<span>self, include_identical=False) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Print a report of the diff to stdout.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>include_identical</code></strong></dt>
+<dd>if True, print files that are identical</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def report(self, include_identical=False) -&gt; None:
+    &#34;&#34;&#34;Print a report of the diff to stdout.
+
+    Args:
+        include_identical: if True, print files that are identical
+    &#34;&#34;&#34;
+
+    diff = self.diff()
+
+    if self.dir_b:
+        dirpath = self.dir_b
+        dt_a = datetime.datetime.now().isoformat()
+        about_a = f&#34;snapshot created by {__file__} at {dt_a}&#34;
+        _, dt_b, about_b = self.get_snapshot_dirpath_datetime_description(
+            self.snapshot_a_conn  # type: ignore
+        )
+    else:
+        dirpath, dt_a, about_a = self.get_snapshot_dirpath_datetime_description(
+            self.snapshot_a_conn  # type: ignore
+        )
+        _, dt_b, about_b = self.get_snapshot_dirpath_datetime_description(
+            self.snapshot_b_conn  # type: ignore
+        )
+
+    print(f&#34;diff &#39;{dirpath}&#39; at {dt_a} ({about_a}) vs {dt_b} ({about_b})&#34;)
+    print(&#34;Added: &#34;)
+    print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.added]))
+    if diff.added:
+        print()
+    print(&#34;Removed: &#34;)
+    print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.removed]))
+    if diff.removed:
+        print()
+    print(&#34;Modified: &#34;)
+    print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.modified]))
+    if diff.modified and include_identical:
+        print()
+    if include_identical:
+        print(&#34;Identical: &#34;)
+        print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.identical]))</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="dirsnapshot.DirDiffResults"><code class="flex name class">
+<span>class <span class="ident">DirDiffResults</span></span>
+<span>(</span><span>added, removed, modified, identical)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>DirDiffResults(added, removed, modified, identical)</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.tuple</li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="dirsnapshot.DirDiffResults.added"><code class="name">var <span class="ident">added</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 0</p></div>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.identical"><code class="name">var <span class="ident">identical</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 3</p></div>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.modified"><code class="name">var <span class="ident">modified</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 2</p></div>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.removed"><code class="name">var <span class="ident">removed</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 1</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="dirsnapshot.dirsnapshot" href="dirsnapshot.html">dirsnapshot.dirsnapshot</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="dirsnapshot.is_snapshot_file" href="#dirsnapshot.is_snapshot_file">is_snapshot_file</a></code></li>
+<li><code><a title="dirsnapshot.snapshot" href="#dirsnapshot.snapshot">snapshot</a></code></li>
+<li><code><a title="dirsnapshot.snapshot_memory" href="#dirsnapshot.snapshot_memory">snapshot_memory</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="dirsnapshot.DirDiff" href="#dirsnapshot.DirDiff">DirDiff</a></code></h4>
+<ul class="">
+<li><code><a title="dirsnapshot.DirDiff.diff" href="#dirsnapshot.DirDiff.diff">diff</a></code></li>
+<li><code><a title="dirsnapshot.DirDiff.get_snapshot_dirpath_datetime_description" href="#dirsnapshot.DirDiff.get_snapshot_dirpath_datetime_description">get_snapshot_dirpath_datetime_description</a></code></li>
+<li><code><a title="dirsnapshot.DirDiff.json" href="#dirsnapshot.DirDiff.json">json</a></code></li>
+<li><code><a title="dirsnapshot.DirDiff.report" href="#dirsnapshot.DirDiff.report">report</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dirsnapshot.DirDiffResults" href="#dirsnapshot.DirDiffResults">DirDiffResults</a></code></h4>
+<ul class="">
+<li><code><a title="dirsnapshot.DirDiffResults.added" href="#dirsnapshot.DirDiffResults.added">added</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.identical" href="#dirsnapshot.DirDiffResults.identical">identical</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.modified" href="#dirsnapshot.DirDiffResults.modified">modified</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.removed" href="#dirsnapshot.DirDiffResults.removed">removed</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
