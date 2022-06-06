@@ -11,7 +11,7 @@ This module can be run as a standalone CLI app as `dirsnap` or included in your 
 ## Usage
 
 ```python
-from dirsnapshot import DirDiff, snapshot
+from dirsnapshot import DirDiff, create_snapshot
 
 # snapshot a directory
 create_snapshot("/Users/user/Desktop", "/Users/user/Desktop/Desktop.snapshot")
@@ -90,6 +90,10 @@ Removed:
 Modified:
     /Users/username/Desktop/export/IMG_4548.jpg
 ```
+
+## File Comparison
+
+During the `diff` comparison, files are considered equal if all properties of the file are equal. Currently, the properties checked are: is_file, is_dir, mode, uid, gid, size, mtime. If any of these properties are different, the file is considered modified.
 
 ## File Format
 
