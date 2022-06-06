@@ -91,4 +91,25 @@ Modified:
     /Users/username/Desktop/export/IMG_4548.jpg
 ```
 
+## File Format
 
+The snapshot database file is a standard SQLite database.  The current schema is:
+
+```sql
+CREATE TABLE snapshot (
+                path TEXT,
+                is_dir INTEGER,
+                is_file INTEGER,
+                st_mode INTEGER,
+                st_uid INTEGER,
+                st_gid INTEGER,
+                st_size INTEGER,
+                st_mtime INTEGER);
+CREATE TABLE _metadata (
+                description TEXT, source TEXT, version TEXT, created_at DATETIME);
+CREATE TABLE about (
+                description TEXT, directory TEXT, datetime DATETIME);
+CREATE INDEX snapshot_path_index ON snapshot (path);
+```
+
+You should not need access the database directly however, as the `DirSnapshot` class provides methods to access the necessary information abstracted from the actual database schema.
