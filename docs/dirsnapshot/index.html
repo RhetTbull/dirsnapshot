@@ -33,19 +33,24 @@ __version__ = importlib.metadata.version(&#34;dirsnapshot&#34;)
 from .dirsnapshot import (
     DirDiff,
     DirDiffResults,
+    DirSnapshot,
     SnapshotInfo,
+    SnapshotRecord,
+    create_snapshot,
+    create_snapshot_in_memory,
     is_snapshot_file,
-    snapshot,
-    snapshot_memory,
+    load_snapshot,
 )
 
 __all__ = [
+    &#34;create_snapshot_in_memory&#34;,
+    &#34;create_snapshot&#34;,
     &#34;DirDiff&#34;,
     &#34;DirDiffResults&#34;,
-    &#34;is_snapshot_file&#34;,
-    &#34;snapshot_memory&#34;,
-    &#34;snapshot&#34;,
+    &#34;DirSnapshot&#34; &#34;is_snapshot_file&#34;,
+    &#34;load_snapshot&#34;,
     &#34;SnapshotInfo&#34;,
+    &#34;SnapshotRecord&#34;,
 ]</code></pre>
 </details>
 </section>
@@ -63,41 +68,11 @@ __all__ = [
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="dirsnapshot.is_snapshot_file"><code class="name flex">
-<span>def <span class="ident">is_snapshot_file</span></span>(<span>pathstr: str) ‑> bool</span>
+<dt id="dirsnapshot.create_snapshot"><code class="name flex">
+<span>def <span class="ident">create_snapshot</span></span>(<span>dirpath: str, snapshot_db: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Return True if the given path is a snapshot database file, otherwise False</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def is_snapshot_file(pathstr: str) -&gt; bool:
-    &#34;&#34;&#34;Return True if the given path is a snapshot database file, otherwise False&#34;&#34;&#34;
-    pathstr = os.path.abspath(os.path.expanduser(pathstr))
-    try:
-        conn = sqlite3.connect(f&#34;file:{pathstr}?mode=ro&#34;, uri=True)
-        cursor = conn.cursor()
-        return (
-            cursor.execute(
-                &#34;&#34;&#34;
-        SELECT count(*)
-        FROM sqlite_master
-        WHERE type=&#39;table&#39;
-        AND name=&#39;snapshot&#39;;
-        &#34;&#34;&#34;
-            ).fetchone()[0]
-            == 1
-        )
-    except Exception as e:
-        return False</code></pre>
-</details>
-</dd>
-<dt id="dirsnapshot.snapshot"><code class="name flex">
-<span>def <span class="ident">snapshot</span></span>(<span>dirpath: str, snapshot_db: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> None</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Create a snapshot of a directory</p>
+<div class="desc"><p>Factory function to create a snapshot of a directory</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>dir</code></strong></dt>
@@ -111,20 +86,22 @@ __all__ = [
 <dt><strong><code>filter</code></strong></dt>
 <dd>optional function to filter out files and directories; should return True if the file or directory should be included in the snapshot</dd>
 </dl>
+<h2 id="returns">Returns</h2>
+<p>DirSnapshot object</p>
 <h2 id="raises">Raises</h2>
 <p>ValueError if snapshot_db already exists</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def snapshot(
+<pre><code class="python">def create_snapshot(
     dirpath: str,
     snapshot_db: str,
     walk: bool = True,
     description: Optional[str] = None,
     filter_function: Optional[Callable[[str], bool]] = None,
-) -&gt; None:
-    &#34;&#34;&#34;Create a snapshot of a directory
+) -&gt; &#34;DirSnapshot&#34;:
+    &#34;&#34;&#34;Factory function to create a snapshot of a directory
 
     Args:
         dir: path to directory to snapshot
@@ -133,22 +110,26 @@ __all__ = [
         description: optional description of the snapshot
         filter: optional function to filter out files and directories; should return True if the file or directory should be included in the snapshot
 
+    Returns:
+        DirSnapshot object
+
     Raises:
         ValueError if snapshot_db already exists
     &#34;&#34;&#34;
 
-    if pathexists(snapshot_db):
+    if snapshot_db != &#34;:memory:&#34; and pathexists(snapshot_db):
         raise ValueError(f&#34;Snapshot database {snapshot_db} already exists&#34;)
 
-    conn, cursor = _open_snapshot_db(snapshot_db, dirpath, description)
-    _snapshot(dirpath, walk, conn, cursor, filter_function)</code></pre>
+    snapshot = DirSnapshot()
+    snapshot.init_from_dir(dirpath, snapshot_db, walk, description, filter_function)
+    return snapshot</code></pre>
 </details>
 </dd>
-<dt id="dirsnapshot.snapshot_memory"><code class="name flex">
-<span>def <span class="ident">snapshot_memory</span></span>(<span>dirpath: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> sqlite3.Connection</span>
+<dt id="dirsnapshot.create_snapshot_in_memory"><code class="name flex">
+<span>def <span class="ident">create_snapshot_in_memory</span></span>(<span>dirpath: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create a snapshot of a directory in memory</p>
+<div class="desc"><p>Factory function to create a snapshot of a directory in memory</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>dir</code></strong></dt>
@@ -159,18 +140,18 @@ __all__ = [
 <dd>optional description of the snapshot</dd>
 </dl>
 <h2 id="returns">Returns</h2>
-<p>sqlite3.Connection to in-memory database</p></div>
+<p>DirSnapshot object</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def snapshot_memory(
+<pre><code class="python">def create_snapshot_in_memory(
     dirpath: str,
     walk: bool = True,
     description: Optional[str] = None,
     filter_function: Optional[Callable[[str], bool]] = None,
-) -&gt; sqlite3.Connection:
-    &#34;&#34;&#34;Create a snapshot of a directory in memory
+) -&gt; &#34;DirSnapshot&#34;:
+    &#34;&#34;&#34;Factory function to create a snapshot of a directory in memory
 
     Args:
         dir: path to directory to snapshot
@@ -178,12 +159,39 @@ __all__ = [
         description: optional description of the snapshot
 
     Returns:
-        sqlite3.Connection to in-memory database
+        DirSnapshot object
     &#34;&#34;&#34;
+    return create_snapshot(dirpath, &#34;:memory:&#34;, walk, description, filter_function)</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.load_snapshot"><code class="name flex">
+<span>def <span class="ident">load_snapshot</span></span>(<span>snapshot_db: str) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Factory function to load a snapshot from a database file</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>snapshot_db</code></strong></dt>
+<dd>path to database file</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>DirSnapshot object</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_snapshot(snapshot_db: str) -&gt; &#34;DirSnapshot&#34;:
+    &#34;&#34;&#34;Factory function to load a snapshot from a database file
 
-    conn, cursor = _open_snapshot_db(&#34;:memory:&#34;, description)
-    _snapshot(dirpath, walk, conn, cursor, filter_function)
-    return conn</code></pre>
+    Args:
+        snapshot_db: path to database file
+
+    Returns:
+        DirSnapshot object
+    &#34;&#34;&#34;
+    snapshot = DirSnapshot()
+    snapshot.load_from_snapshot_db(snapshot_db)
+    return snapshot</code></pre>
 </details>
 </dd>
 </dl>
@@ -193,21 +201,19 @@ __all__ = [
 <dl>
 <dt id="dirsnapshot.DirDiff"><code class="flex name class">
 <span>class <span class="ident">DirDiff</span></span>
-<span>(</span><span>snapshot_a: str, directory_or_snapshot_b: str, walk: bool = True, filter_function: Optional[Callable[[str], bool]] = None)</span>
+<span>(</span><span>snapshot_a: Union[str, dirsnapshot.dirsnapshot.DirSnapshot], directory_or_snapshot_b: Union[str, dirsnapshot.dirsnapshot.DirSnapshot], walk: bool = True, filter_function: Optional[Callable[[str], bool]] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Initialize the DirDiff instance</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>snapshot_a</code></strong></dt>
-<dd>path to previous snapshot database to compare</dd>
+<dd>path to previous snapshot database to compare or a DirSnapshot instance</dd>
 <dt><strong><code>directory_or_snapshot_b</code></strong></dt>
-<dd>path to current snapshot database or path to directory to compare snapshot_a to</dd>
+<dd>path to current snapshot database, DirSnapshot instance, or path to directory to compare snapshot_a to</dd>
 <dt><strong><code>walk</code></strong></dt>
-<dd>if True, walks the directory tree dir_b and recursively adds all files and directories</dd>
-</dl>
-<p>Note: May be initialized with snapshot_a and dir_b to compare a current directory (dir_b) to previous snapshot (snapshot_a)
-or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newer snapshot (snapshot_b), but not both.</p></div>
+<dd>if True, walks the directory tree and recursively adds all files and directories</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -215,31 +221,34 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 <pre><code class="python">class DirDiff:
     def __init__(
         self,
-        snapshot_a: str,
-        directory_or_snapshot_b: str,
+        snapshot_a: Union[str, DirSnapshot],
+        directory_or_snapshot_b: Union[str, DirSnapshot],
         walk: bool = True,
         filter_function: Optional[Callable[[str], bool]] = None,
     ):
         &#34;&#34;&#34;Initialize the DirDiff instance
 
         Args:
-            snapshot_a: path to previous snapshot database to compare
-            directory_or_snapshot_b: path to current snapshot database or path to directory to compare snapshot_a to
-            walk: if True, walks the directory tree dir_b and recursively adds all files and directories
-
-        Note: May be initialized with snapshot_a and dir_b to compare a current directory (dir_b) to previous snapshot (snapshot_a)
-        or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newer snapshot (snapshot_b), but not both.
+            snapshot_a: path to previous snapshot database to compare or a DirSnapshot instance
+            directory_or_snapshot_b: path to current snapshot database, DirSnapshot instance, or path to directory to compare snapshot_a to
+            walk: if True, walks the directory tree and recursively adds all files and directories
         &#34;&#34;&#34;
-        self.snapshot_a = snapshot_a
-        if not is_snapshot_file(snapshot_a):
-            raise ValueError(f&#34;{snapshot_a} is not a snapshot database&#34;)
 
-        if os.path.isdir(directory_or_snapshot_b):
-            self.dir_b = directory_or_snapshot_b
-            self.snapshot_b = None
-        elif is_snapshot_file(directory_or_snapshot_b):
-            self.dir_b = &#34;&#34;
+        if isinstance(snapshot_a, str):
+            self.snapshot_a = load_snapshot(snapshot_a)
+        elif isinstance(snapshot_a, DirSnapshot):
+            self.snapshot_a = snapshot_a
+        else:
+            raise ValueError(
+                f&#34;{snapshot_a} is not a snapshot database or DirSnapshot instance&#34;
+            )
+
+        if isinstance(directory_or_snapshot_b, DirSnapshot):
             self.snapshot_b = directory_or_snapshot_b
+        elif os.path.isdir(directory_or_snapshot_b):
+            self.snapshot_b = create_snapshot_in_memory(directory_or_snapshot_b, walk)
+        elif is_snapshot_file(directory_or_snapshot_b):
+            self.snapshot_b = load_snapshot(directory_or_snapshot_b)
         else:
             raise ValueError(
                 f&#34;{directory_or_snapshot_b} is not a directory or a snapshot database&#34;
@@ -249,22 +258,13 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
         self.walk = walk
         self.filter_function = filter_function
 
-        self.snapshot_a_conn = sqlite3.connect(self.snapshot_a)
-        self.snapshot_b_conn = (
-            sqlite3.connect(self.snapshot_b)
-            if self.snapshot_b
-            else snapshot_memory(self.dir_b, walk=self.walk)
-        )
-
     def diff(self) -&gt; DirDiffResults:
         &#34;&#34;&#34;Compare the current directory or snapshot to the previous snapshot
 
         Returns:
             diff results as DirDiffResults namedtuple
         &#34;&#34;&#34;
-        self._diff = self._diff_snapshots(
-            self.snapshot_a_conn, self.snapshot_b_conn  # type: ignore
-        )
+        self._diff = self._diff_snapshots()
         return self._diff
 
     def json(self, indent=2) -&gt; str:
@@ -281,16 +281,8 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 
         diff = self.diff()
 
-        if self.dir_b:
-            dirpath = self.dir_b
-            dt_b = datetime.datetime.now().isoformat()
-            about_b = f&#34;snapshot created by {__file__} at {dt_b}&#34;
-            info_b = SnapshotInfo(description=about_b, directory=dirpath, datetime=dt_b)
-            info_a = self.get_snapshot_info(self.snapshot_a_conn)  # type: ignore
-        else:
-            info_a = self.get_snapshot_info(self.snapshot_a_conn)  # type: ignore
-            info_b = self.get_snapshot_info(self.snapshot_b_conn)  # type: ignore
-
+        info_a = self.snapshot_a.info
+        info_b = self.snapshot_b.info
         print(
             f&#34;diff &#39;{info_a.directory}&#39; {info_a.datetime} ({info_a.description}) vs {info_b.datetime} ({info_b.description})&#34;
         )
@@ -310,30 +302,8 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
             print(&#34;Identical: &#34;)
             print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.identical]))
 
-    def get_snapshot_info(self, conn: sqlite3.Connection) -&gt; SnapshotInfo:
-        &#34;&#34;&#34;Return info about a snapshot as a named tuple.
-
-        Args:
-            conn: sqlite3.Connection to the snapshot database
-
-        Returns:
-            (description string, path to directory, datetime string)
-        &#34;&#34;&#34;
-        cursor = conn.cursor()
-        cursor.execute(
-            &#34;SELECT description, directory, datetime FROM about ORDER BY datetime DESC LIMIT 1&#34;
-        )
-        description, directory, dt = cursor.fetchone()
-        return SnapshotInfo(description, directory, dt)
-
-    def _diff_snapshots(
-        self, conn_a: sqlite3.Connection, conn_b: sqlite3.Connection
-    ) -&gt; DirDiffResults:
+    def _diff_snapshots(self) -&gt; DirDiffResults:
         &#34;&#34;&#34;Diff two database snapshots
-
-        Args:
-            conn_a: Connection to snapshot a db (the previous snapshot)
-            conn_b: Connection to snapshot b db (the current snapshot)
 
         Returns:
             DirDiffResults namedtuple
@@ -344,36 +314,32 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
             &#34;modified&#34;: [],
             &#34;identical&#34;: [],
         }
-        cursor_a = conn_a.cursor()
-        cursor_b = conn_b.cursor()
         paths_b = {}
-        for row in cursor_b.execute(&#34;SELECT * FROM snapshot&#34;):
-            pathstr, is_dir, is_file, st_mode, st_uid, st_gid, st_size, st_mtime = row
-            if self.filter_function and not self.filter_function(pathstr):
+        for row_b in self.snapshot_b.records():
+            if self.filter_function and not self.filter_function(row_b.path):
                 continue
-            paths_b[pathstr] = 1
-            cursor_a.execute(&#34;&#34;&#34;SELECT * FROM snapshot WHERE path = ?&#34;&#34;&#34;, (pathstr,))
-            if row_b := cursor_a.fetchone():
+            paths_b[row_b.path] = 1
+            if row_a := self.snapshot_a.record(row_b.path):
                 # TODO: make this a compare function that can be passed in
                 if (
-                    row_b[1] != is_dir
-                    or row_b[2] != is_file
-                    or row_b[3] != st_mode
-                    or row_b[4] != st_uid
-                    or row_b[5] != st_gid
-                    or row_b[6] != st_size
-                    or row_b[7] != st_mtime
+                    row_a.is_dir != row_b.is_dir
+                    or row_a.is_file != row_b.is_file
+                    or row_a.mode != row_b.mode
+                    or row_a.uid != row_b.uid
+                    or row_a.gid != row_b.gid
+                    or row_a.size != row_b.size
+                    or row_a.mtime != row_b.mtime
                 ):
-                    diffresults[&#34;modified&#34;].append(pathstr)
+                    diffresults[&#34;modified&#34;].append(row_b.path)
                 else:
-                    diffresults[&#34;identical&#34;].append(pathstr)
+                    diffresults[&#34;identical&#34;].append(row_b.path)
             else:
-                diffresults[&#34;added&#34;].append(pathstr)
-        for row in cursor_a.execute(&#34;SELECT path FROM SNAPSHOT&#34;):
-            if self.filter_function and not self.filter_function(row[0]):
+                diffresults[&#34;added&#34;].append(row_b.path)
+        for row_a in self.snapshot_a.records():
+            if self.filter_function and not self.filter_function(row_a.path):
                 continue
-            if row[0] not in paths_b:
-                diffresults[&#34;removed&#34;].append(row[0])
+            if row_a.path not in paths_b:
+                diffresults[&#34;removed&#34;].append(row_a.path)
 
         return DirDiffResults(**diffresults)</code></pre>
 </details>
@@ -396,43 +362,8 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
     Returns:
         diff results as DirDiffResults namedtuple
     &#34;&#34;&#34;
-    self._diff = self._diff_snapshots(
-        self.snapshot_a_conn, self.snapshot_b_conn  # type: ignore
-    )
+    self._diff = self._diff_snapshots()
     return self._diff</code></pre>
-</details>
-</dd>
-<dt id="dirsnapshot.DirDiff.get_snapshot_info"><code class="name flex">
-<span>def <span class="ident">get_snapshot_info</span></span>(<span>self, conn: sqlite3.Connection) ‑> <a title="dirsnapshot.dirsnapshot.SnapshotInfo" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotInfo">SnapshotInfo</a></span>
-</code></dt>
-<dd>
-<div class="desc"><p>Return info about a snapshot as a named tuple.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>conn</code></strong></dt>
-<dd>sqlite3.Connection to the snapshot database</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<p>(description string, path to directory, datetime string)</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_snapshot_info(self, conn: sqlite3.Connection) -&gt; SnapshotInfo:
-    &#34;&#34;&#34;Return info about a snapshot as a named tuple.
-
-    Args:
-        conn: sqlite3.Connection to the snapshot database
-
-    Returns:
-        (description string, path to directory, datetime string)
-    &#34;&#34;&#34;
-    cursor = conn.cursor()
-    cursor.execute(
-        &#34;SELECT description, directory, datetime FROM about ORDER BY datetime DESC LIMIT 1&#34;
-    )
-    description, directory, dt = cursor.fetchone()
-    return SnapshotInfo(description, directory, dt)</code></pre>
 </details>
 </dd>
 <dt id="dirsnapshot.DirDiff.json"><code class="name flex">
@@ -473,16 +404,8 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 
     diff = self.diff()
 
-    if self.dir_b:
-        dirpath = self.dir_b
-        dt_b = datetime.datetime.now().isoformat()
-        about_b = f&#34;snapshot created by {__file__} at {dt_b}&#34;
-        info_b = SnapshotInfo(description=about_b, directory=dirpath, datetime=dt_b)
-        info_a = self.get_snapshot_info(self.snapshot_a_conn)  # type: ignore
-    else:
-        info_a = self.get_snapshot_info(self.snapshot_a_conn)  # type: ignore
-        info_b = self.get_snapshot_info(self.snapshot_b_conn)  # type: ignore
-
+    info_a = self.snapshot_a.info
+    info_b = self.snapshot_b.info
     print(
         f&#34;diff &#39;{info_a.directory}&#39; {info_a.datetime} ({info_a.description}) vs {info_b.datetime} ({info_b.description})&#34;
     )
@@ -507,6 +430,36 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 </dd>
 <dt id="dirsnapshot.DirDiffResults"><code class="flex name class">
 <span>class <span class="ident">DirDiffResults</span></span>
+<span>(</span><span>added, removed, modified, identical)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>DirDiffResults(added, removed, modified, identical)</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.tuple</li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="dirsnapshot.DirDiffResults.added"><code class="name">var <span class="ident">added</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 0</p></div>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.identical"><code class="name">var <span class="ident">identical</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 3</p></div>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.modified"><code class="name">var <span class="ident">modified</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 2</p></div>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.removed"><code class="name">var <span class="ident">removed</span></code></dt>
+<dd>
+<div class="desc"><p>Alias for field number 1</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="dirsnapshot.DirDiffResults"><code class="flex name class">
+<span>class <span class="ident">DirSnapshotis_snapshot_file</span></span>
 <span>(</span><span>added, removed, modified, identical)</span>
 </code></dt>
 <dd>
@@ -561,6 +514,130 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 </dd>
 </dl>
 </dd>
+<dt id="dirsnapshot.SnapshotRecord"><code class="flex name class">
+<span>class <span class="ident">SnapshotRecord</span></span>
+<span>(</span><span>path: str, is_dir: bool, is_file: bool, mode: int, uid: int, gid: int, size: int, mtime: int)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Snapshot details for a file or directory.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>path</code></strong></dt>
+<dd>path to file or directory</dd>
+<dt><strong><code>is_dir</code></strong></dt>
+<dd>True if the path is a directory, False if it is a file</dd>
+<dt><strong><code>is_file</code></strong></dt>
+<dd>True if the path is a file, False if it is a directory</dd>
+<dt><strong><code>mode</code></strong></dt>
+<dd>file mode of file or directory</dd>
+<dt><strong><code>uid</code></strong></dt>
+<dd>user ID of file or directory</dd>
+<dt><strong><code>gid</code></strong></dt>
+<dd>group ID of file or directory</dd>
+<dt><strong><code>size</code></strong></dt>
+<dd>size of file or directory in bytes</dd>
+<dt><strong><code>mtime</code></strong></dt>
+<dd>modification time of file or directory</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class SnapshotRecord:
+    &#34;&#34;&#34;Snapshot details for a file or directory.
+
+    Attributes:
+        path: path to file or directory
+        is_dir: True if the path is a directory, False if it is a file
+        is_file: True if the path is a file, False if it is a directory
+        mode: file mode of file or directory
+        uid: user ID of file or directory
+        gid: group ID of file or directory
+        size: size of file or directory in bytes
+        mtime: modification time of file or directory
+    &#34;&#34;&#34;
+
+    path: str
+    is_dir: bool
+    is_file: bool
+    mode: int
+    uid: int
+    gid: int
+    size: int
+    mtime: int
+
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    def json(self):
+        return json.dumps(self.asdict())</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="dirsnapshot.SnapshotRecord.gid"><code class="name">var <span class="ident">gid</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.is_dir"><code class="name">var <span class="ident">is_dir</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.is_file"><code class="name">var <span class="ident">is_file</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.mode"><code class="name">var <span class="ident">mode</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.mtime"><code class="name">var <span class="ident">mtime</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.path"><code class="name">var <span class="ident">path</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.size"><code class="name">var <span class="ident">size</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.uid"><code class="name">var <span class="ident">uid</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dirsnapshot.SnapshotRecord.asdict"><code class="name flex">
+<span>def <span class="ident">asdict</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def asdict(self):
+    return dataclasses.asdict(self)</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.SnapshotRecord.json"><code class="name flex">
+<span>def <span class="ident">json</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def json(self):
+    return json.dumps(self.asdict())</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
 </dl>
 </section>
 </article>
@@ -577,9 +654,9 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="dirsnapshot.is_snapshot_file" href="#dirsnapshot.is_snapshot_file">is_snapshot_file</a></code></li>
-<li><code><a title="dirsnapshot.snapshot" href="#dirsnapshot.snapshot">snapshot</a></code></li>
-<li><code><a title="dirsnapshot.snapshot_memory" href="#dirsnapshot.snapshot_memory">snapshot_memory</a></code></li>
+<li><code><a title="dirsnapshot.create_snapshot" href="#dirsnapshot.create_snapshot">create_snapshot</a></code></li>
+<li><code><a title="dirsnapshot.create_snapshot_in_memory" href="#dirsnapshot.create_snapshot_in_memory">create_snapshot_in_memory</a></code></li>
+<li><code><a title="dirsnapshot.load_snapshot" href="#dirsnapshot.load_snapshot">load_snapshot</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -588,9 +665,17 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 <h4><code><a title="dirsnapshot.DirDiff" href="#dirsnapshot.DirDiff">DirDiff</a></code></h4>
 <ul class="">
 <li><code><a title="dirsnapshot.DirDiff.diff" href="#dirsnapshot.DirDiff.diff">diff</a></code></li>
-<li><code><a title="dirsnapshot.DirDiff.get_snapshot_info" href="#dirsnapshot.DirDiff.get_snapshot_info">get_snapshot_info</a></code></li>
 <li><code><a title="dirsnapshot.DirDiff.json" href="#dirsnapshot.DirDiff.json">json</a></code></li>
 <li><code><a title="dirsnapshot.DirDiff.report" href="#dirsnapshot.DirDiff.report">report</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dirsnapshot.DirDiffResults" href="#dirsnapshot.DirDiffResults">DirDiffResults</a></code></h4>
+<ul class="">
+<li><code><a title="dirsnapshot.DirDiffResults.added" href="#dirsnapshot.DirDiffResults.added">added</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.identical" href="#dirsnapshot.DirDiffResults.identical">identical</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.modified" href="#dirsnapshot.DirDiffResults.modified">modified</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.removed" href="#dirsnapshot.DirDiffResults.removed">removed</a></code></li>
 </ul>
 </li>
 <li>
@@ -608,6 +693,21 @@ or with snapshot_a and snapshot_b to compare older snapshot (snapshot_a) to newe
 <li><code><a title="dirsnapshot.SnapshotInfo.datetime" href="#dirsnapshot.SnapshotInfo.datetime">datetime</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotInfo.description" href="#dirsnapshot.SnapshotInfo.description">description</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotInfo.directory" href="#dirsnapshot.SnapshotInfo.directory">directory</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dirsnapshot.SnapshotRecord" href="#dirsnapshot.SnapshotRecord">SnapshotRecord</a></code></h4>
+<ul class="two-column">
+<li><code><a title="dirsnapshot.SnapshotRecord.asdict" href="#dirsnapshot.SnapshotRecord.asdict">asdict</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.gid" href="#dirsnapshot.SnapshotRecord.gid">gid</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.is_dir" href="#dirsnapshot.SnapshotRecord.is_dir">is_dir</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.is_file" href="#dirsnapshot.SnapshotRecord.is_file">is_file</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.json" href="#dirsnapshot.SnapshotRecord.json">json</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.mode" href="#dirsnapshot.SnapshotRecord.mode">mode</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.mtime" href="#dirsnapshot.SnapshotRecord.mtime">mtime</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.path" href="#dirsnapshot.SnapshotRecord.path">path</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.size" href="#dirsnapshot.SnapshotRecord.size">size</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.uid" href="#dirsnapshot.SnapshotRecord.uid">uid</a></code></li>
 </ul>
 </li>
 </ul>

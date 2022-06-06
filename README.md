@@ -14,7 +14,7 @@ This module can be run as a standalone CLI app as `dirsnap` or included in your 
 from dirsnapshot import DirDiff, snapshot
 
 # snapshot a directory
-snapshot("/Users/user/Desktop", "/Users/user/Desktop/Desktop.snapshot")
+create_snapshot("/Users/user/Desktop", "/Users/user/Desktop/Desktop.snapshot")
 
 # do some work
 ...
@@ -67,6 +67,28 @@ options:
   --no-walk             Don't walk directories
 ```
 
-## Documentation
+For example:
 
-See full documentation [here]().
+```bash
+$ dirsnap --snapshot ~/Desktop/export before.snapshot
+Creating snapshot of '/Users/username/Desktop/export' at 'before.snapshot'
+Snapshot created at 'before.snapshot'
+
+$ touch ~/Desktop/export/IMG_4548.jpg
+$ rm ~/Desktop/export/IMG_4547.jpg
+$ touch ~/Desktop/export/new_file.jpg
+
+$ dirsnap --diff before.snapshot ~/Desktop/export
+diff '/Users/username/Desktop/export' 2022-06-05T18:38:11.189886 (Snapshot created at 2022-06-05T18:38:11.189886) vs 2022-06-05T18:39:07.225374 (Snapshot created at 2022-06-05T18:39:07.225374)
+
+Added:
+    /Users/username/Desktop/export/new_file.jpg
+
+Removed:
+    /Users/username/Desktop/export/IMG_4547.jpg
+
+Modified:
+    /Users/username/Desktop/export/IMG_4548.jpg
+```
+
+

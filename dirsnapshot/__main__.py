@@ -2,7 +2,7 @@ import argparse
 import os.path
 import re
 
-from .dirsnapshot import DirDiff, DirDiffResults, is_snapshot_file, snapshot
+from .dirsnapshot import DirDiff, DirDiffResults, is_snapshot_file, create_snapshot
 
 
 def cli():
@@ -84,7 +84,7 @@ def cli():
             parser.error(f"{snapshot_dir} is not a directory")
         about = args.descr[0] if args.descr else None
         print(f"Creating snapshot of '{snapshot_dir}' at '{snapshot_file}'")
-        snapshot(
+        create_snapshot(
             snapshot_dir,
             snapshot_file,
             walk=not args.no_walk,
