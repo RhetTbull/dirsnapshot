@@ -117,3 +117,7 @@ CREATE INDEX snapshot_path_index ON snapshot (path);
 ```
 
 You should not need access the database directly however, as the `DirSnapshot` class provides methods to access the necessary information abstracted from the actual database schema.
+
+## Dependencies
+
+No dependencies! This is a pure Python module that uses only the standard Python libraries.
