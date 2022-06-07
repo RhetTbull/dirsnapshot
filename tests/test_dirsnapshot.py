@@ -248,6 +248,40 @@ def test_dirdiff_snapshot_dir(tmp_path: pathlib.Path):
     assert sorted(diff.identical) == sorted(files)
 
 
+def test_dirdiff_diff_dirs(tmp_path: pathlib.Path):
+    """Test DirDiff with dirs=False"""
+    d1 = tmp_path / "dir1"
+    d1.mkdir()
+    files = populate_dir(d1)
+
+    # snapshot 1
+    snapshot_file1 = tmp_path / "1.snapshot"
+    create_snapshot(str(d1), str(snapshot_file1), description="snapshot-1")
+
+    added, removed, modified = modify_files(d1)
+
+    dirdiff = DirDiff(
+        str(snapshot_file1),
+        str(d1),
+    )
+    diff = dirdiff.diff(dirs=False)
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+
+    # filter out directories
+    modified = [f for f in modified if pathlib.Path(f).name not in ["dir_0", "dir_1"]]
+    assert sorted(diff.modified) == modified
+
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
+
+    # filter out directories
+    files = [f for f in files if pathlib.Path(f).name not in ["dir_0", "dir_1"]]
+
+    assert sorted(diff.identical) == sorted(files)
+
+
 def test_dirdiff_filter_function_two_snapshots(tmp_path: pathlib.Path):
     """Test DirDiff with filter function and two snapshots"""
     d1 = tmp_path / "dir1"

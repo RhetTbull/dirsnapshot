@@ -446,6 +446,7 @@ class DirDiff:
 
     def diff(
         self,
+        dirs: bool = True,
         compare_function: Optional[
             Callable[[SnapshotRecord, SnapshotRecord], bool]
         ] = None,
@@ -453,12 +454,13 @@ class DirDiff:
         """Compare the current directory or snapshot to the previous snapshot
 
         Args:
+            `dirs`: if True, includes directories in the comparison, otherwise only files are compared (if dirs==True, directories will show as modified if any file contained in the directory has been modified)
             `compare_function`: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False
 
         Returns:
             diff results as DirDiffResults instance
         """
-        self._diff = self._diff_snapshots(compare_function)
+        self._diff = self._diff_snapshots(dirs, compare_function)
         return self._diff
 
     def report(self, include_identical=False) -> None:
@@ -516,6 +518,7 @@ class DirDiff:
 
     def _diff_snapshots(
         self,
+        dirs: bool,
         compare_function: Optional[
             Callable[[SnapshotRecord, SnapshotRecord], bool]
         ] = None,
@@ -538,6 +541,8 @@ class DirDiff:
         for row_b in self.snapshot_b.records():
             if self.filter_function and not self.filter_function(row_b.path):
                 continue
+            if not dirs and row_b.is_dir:
+                continue
             paths_b[row_b.path] = 1
             if row_a := self.snapshot_a.record(row_b.path):
                 if not compare_function(row_a, row_b):
@@ -548,6 +553,8 @@ class DirDiff:
                 diffresults["added"].append(row_b.path)
         for row_a in self.snapshot_a.records():
             if self.filter_function and not self.filter_function(row_a.path):
+                continue
+            if not dirs and row_a.is_dir:
                 continue
             if row_a.path not in paths_b:
                 diffresults["removed"].append(row_a.path)
