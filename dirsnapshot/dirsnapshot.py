@@ -28,7 +28,6 @@ from ._version import __version__
 
 
 __all__ = [
-    "create_snapshot_in_memory",
     "create_snapshot",
     "DirDiff",
     "DirDiffResults",
@@ -48,7 +47,7 @@ SnapshotInfo = namedtuple("SnapshotInfo", ["description", "directory", "datetime
 
 def create_snapshot(
     dirpath: str,
-    snapshot_db: str,
+    snapshot_db: Optional[str],
     walk: bool = True,
     description: Optional[str] = None,
     filter_function: Optional[Callable[[str], bool]] = None,
@@ -57,7 +56,7 @@ def create_snapshot(
 
     Args:
         dir: path to directory to snapshot
-        snapshot_db: path to database to write snapshot to
+        snapshot_db: path to database to write snapshot to or None to create database in memory
         walk: if True, walk the directory tree and add all files and directories
         description: optional description of the snapshot
         filter: optional function to filter out files and directories; should return True if the file or directory should be included in the snapshot
@@ -69,31 +68,13 @@ def create_snapshot(
         ValueError if snapshot_db already exists
     """
 
+    snapshot_db = snapshot_db or ":memory:"
     if snapshot_db != ":memory:" and pathexists(snapshot_db):
         raise ValueError(f"Snapshot database {snapshot_db} already exists")
 
     snapshot = DirSnapshot()
     snapshot.init_from_dir(dirpath, snapshot_db, walk, description, filter_function)
     return snapshot
-
-
-def create_snapshot_in_memory(
-    dirpath: str,
-    walk: bool = True,
-    description: Optional[str] = None,
-    filter_function: Optional[Callable[[str], bool]] = None,
-) -> "DirSnapshot":
-    """Factory function to create a snapshot of a directory in memory
-
-    Args:
-        dir: path to directory to snapshot
-        walk: if True, walk the directory tree and add all files and directories
-        description: optional description of the snapshot
-
-    Returns:
-        DirSnapshot object
-    """
-    return create_snapshot(dirpath, ":memory:", walk, description, filter_function)
 
 
 def load_snapshot(snapshot_db: str) -> "DirSnapshot":
@@ -158,6 +139,7 @@ class SnapshotRecord:
     user_data: Optional[Any] = None
 
     def asdict(self):
+        """Return a dict representation of the snapshot record"""
         return dataclasses.asdict(self)
 
 
@@ -447,7 +429,7 @@ class DirDiff:
         if isinstance(directory_or_snapshot_b, DirSnapshot):
             self.snapshot_b = directory_or_snapshot_b
         elif os.path.isdir(directory_or_snapshot_b):
-            self.snapshot_b = create_snapshot_in_memory(directory_or_snapshot_b, walk)
+            self.snapshot_b = create_snapshot(directory_or_snapshot_b, None, walk)
         elif is_snapshot_file(directory_or_snapshot_b):
             self.snapshot_b = load_snapshot(directory_or_snapshot_b)
         else:

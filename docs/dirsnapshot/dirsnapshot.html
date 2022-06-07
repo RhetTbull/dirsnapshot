@@ -61,7 +61,6 @@ from ._version import __version__
 
 
 __all__ = [
-    &#34;create_snapshot_in_memory&#34;,
     &#34;create_snapshot&#34;,
     &#34;DirDiff&#34;,
     &#34;DirDiffResults&#34;,
@@ -81,7 +80,7 @@ SnapshotInfo = namedtuple(&#34;SnapshotInfo&#34;, [&#34;description&#34;, &#34;d
 
 def create_snapshot(
     dirpath: str,
-    snapshot_db: str,
+    snapshot_db: Optional[str],
     walk: bool = True,
     description: Optional[str] = None,
     filter_function: Optional[Callable[[str], bool]] = None,
@@ -90,7 +89,7 @@ def create_snapshot(
 
     Args:
         dir: path to directory to snapshot
-        snapshot_db: path to database to write snapshot to
+        snapshot_db: path to database to write snapshot to or None to create database in memory
         walk: if True, walk the directory tree and add all files and directories
         description: optional description of the snapshot
         filter: optional function to filter out files and directories; should return True if the file or directory should be included in the snapshot
@@ -102,31 +101,13 @@ def create_snapshot(
         ValueError if snapshot_db already exists
     &#34;&#34;&#34;
 
+    snapshot_db = snapshot_db or &#34;:memory:&#34;
     if snapshot_db != &#34;:memory:&#34; and pathexists(snapshot_db):
         raise ValueError(f&#34;Snapshot database {snapshot_db} already exists&#34;)
 
     snapshot = DirSnapshot()
     snapshot.init_from_dir(dirpath, snapshot_db, walk, description, filter_function)
     return snapshot
-
-
-def create_snapshot_in_memory(
-    dirpath: str,
-    walk: bool = True,
-    description: Optional[str] = None,
-    filter_function: Optional[Callable[[str], bool]] = None,
-) -&gt; &#34;DirSnapshot&#34;:
-    &#34;&#34;&#34;Factory function to create a snapshot of a directory in memory
-
-    Args:
-        dir: path to directory to snapshot
-        walk: if True, walk the directory tree and add all files and directories
-        description: optional description of the snapshot
-
-    Returns:
-        DirSnapshot object
-    &#34;&#34;&#34;
-    return create_snapshot(dirpath, &#34;:memory:&#34;, walk, description, filter_function)
 
 
 def load_snapshot(snapshot_db: str) -&gt; &#34;DirSnapshot&#34;:
@@ -191,6 +172,7 @@ class SnapshotRecord:
     user_data: Optional[Any] = None
 
     def asdict(self):
+        &#34;&#34;&#34;Return a dict representation of the snapshot record&#34;&#34;&#34;
         return dataclasses.asdict(self)
 
 
@@ -480,7 +462,7 @@ class DirDiff:
         if isinstance(directory_or_snapshot_b, DirSnapshot):
             self.snapshot_b = directory_or_snapshot_b
         elif os.path.isdir(directory_or_snapshot_b):
-            self.snapshot_b = create_snapshot_in_memory(directory_or_snapshot_b, walk)
+            self.snapshot_b = create_snapshot(directory_or_snapshot_b, None, walk)
         elif is_snapshot_file(directory_or_snapshot_b):
             self.snapshot_b = load_snapshot(directory_or_snapshot_b)
         else:
@@ -611,7 +593,7 @@ class DirDiff:
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="dirsnapshot.dirsnapshot.create_snapshot"><code class="name flex">
-<span>def <span class="ident">create_snapshot</span></span>(<span>dirpath: str, snapshot_db: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
+<span>def <span class="ident">create_snapshot</span></span>(<span>dirpath: str, snapshot_db: Optional[str], walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Factory function to create a snapshot of a directory</p>
@@ -620,7 +602,7 @@ class DirDiff:
 <dt><strong><code>dir</code></strong></dt>
 <dd>path to directory to snapshot</dd>
 <dt><strong><code>snapshot_db</code></strong></dt>
-<dd>path to database to write snapshot to</dd>
+<dd>path to database to write snapshot to or None to create database in memory</dd>
 <dt><strong><code>walk</code></strong></dt>
 <dd>if True, walk the directory tree and add all files and directories</dd>
 <dt><strong><code>description</code></strong></dt>
@@ -638,7 +620,7 @@ class DirDiff:
 </summary>
 <pre><code class="python">def create_snapshot(
     dirpath: str,
-    snapshot_db: str,
+    snapshot_db: Optional[str],
     walk: bool = True,
     description: Optional[str] = None,
     filter_function: Optional[Callable[[str], bool]] = None,
@@ -647,7 +629,7 @@ class DirDiff:
 
     Args:
         dir: path to directory to snapshot
-        snapshot_db: path to database to write snapshot to
+        snapshot_db: path to database to write snapshot to or None to create database in memory
         walk: if True, walk the directory tree and add all files and directories
         description: optional description of the snapshot
         filter: optional function to filter out files and directories; should return True if the file or directory should be included in the snapshot
@@ -659,51 +641,13 @@ class DirDiff:
         ValueError if snapshot_db already exists
     &#34;&#34;&#34;
 
+    snapshot_db = snapshot_db or &#34;:memory:&#34;
     if snapshot_db != &#34;:memory:&#34; and pathexists(snapshot_db):
         raise ValueError(f&#34;Snapshot database {snapshot_db} already exists&#34;)
 
     snapshot = DirSnapshot()
     snapshot.init_from_dir(dirpath, snapshot_db, walk, description, filter_function)
     return snapshot</code></pre>
-</details>
-</dd>
-<dt id="dirsnapshot.dirsnapshot.create_snapshot_in_memory"><code class="name flex">
-<span>def <span class="ident">create_snapshot_in_memory</span></span>(<span>dirpath: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Factory function to create a snapshot of a directory in memory</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>dir</code></strong></dt>
-<dd>path to directory to snapshot</dd>
-<dt><strong><code>walk</code></strong></dt>
-<dd>if True, walk the directory tree and add all files and directories</dd>
-<dt><strong><code>description</code></strong></dt>
-<dd>optional description of the snapshot</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<p>DirSnapshot object</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def create_snapshot_in_memory(
-    dirpath: str,
-    walk: bool = True,
-    description: Optional[str] = None,
-    filter_function: Optional[Callable[[str], bool]] = None,
-) -&gt; &#34;DirSnapshot&#34;:
-    &#34;&#34;&#34;Factory function to create a snapshot of a directory in memory
-
-    Args:
-        dir: path to directory to snapshot
-        walk: if True, walk the directory tree and add all files and directories
-        description: optional description of the snapshot
-
-    Returns:
-        DirSnapshot object
-    &#34;&#34;&#34;
-    return create_snapshot(dirpath, &#34;:memory:&#34;, walk, description, filter_function)</code></pre>
 </details>
 </dd>
 <dt id="dirsnapshot.dirsnapshot.load_snapshot"><code class="name flex">
@@ -788,7 +732,7 @@ class DirDiff:
         if isinstance(directory_or_snapshot_b, DirSnapshot):
             self.snapshot_b = directory_or_snapshot_b
         elif os.path.isdir(directory_or_snapshot_b):
-            self.snapshot_b = create_snapshot_in_memory(directory_or_snapshot_b, walk)
+            self.snapshot_b = create_snapshot(directory_or_snapshot_b, None, walk)
         elif is_snapshot_file(directory_or_snapshot_b):
             self.snapshot_b = load_snapshot(directory_or_snapshot_b)
         else:
@@ -1265,6 +1209,7 @@ class SnapshotRecord:
     user_data: Optional[Any] = None
 
     def asdict(self):
+        &#34;&#34;&#34;Return a dict representation of the snapshot record&#34;&#34;&#34;
         return dataclasses.asdict(self)</code></pre>
 </details>
 <h3>Class variables</h3>
@@ -1312,12 +1257,13 @@ class SnapshotRecord:
 <span>def <span class="ident">asdict</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Return a dict representation of the snapshot record</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def asdict(self):
+    &#34;&#34;&#34;Return a dict representation of the snapshot record&#34;&#34;&#34;
     return dataclasses.asdict(self)</code></pre>
 </details>
 </dd>
@@ -1340,7 +1286,6 @@ class SnapshotRecord:
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="dirsnapshot.dirsnapshot.create_snapshot" href="#dirsnapshot.dirsnapshot.create_snapshot">create_snapshot</a></code></li>
-<li><code><a title="dirsnapshot.dirsnapshot.create_snapshot_in_memory" href="#dirsnapshot.dirsnapshot.create_snapshot_in_memory">create_snapshot_in_memory</a></code></li>
 <li><code><a title="dirsnapshot.dirsnapshot.load_snapshot" href="#dirsnapshot.dirsnapshot.load_snapshot">load_snapshot</a></code></li>
 </ul>
 </li>

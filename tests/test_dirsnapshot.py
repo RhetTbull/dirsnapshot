@@ -115,6 +115,16 @@ def test_is_snapshot_file(tmp_path: pathlib.Path):
     assert not is_snapshot_file(snapshot_file)
 
 
+def test_create_snapshot_in_memory(tmp_path: pathlib.Path):
+    """Test create_snapshot with in-memory snapshot"""
+    d1 = tmp_path / "dir1"
+    d1.mkdir()
+
+    populate_dir(d1)
+    snapshot = create_snapshot(str(d1), None)
+    assert type(snapshot) == DirSnapshot
+
+
 def test_dirdiff_two_snapshots(tmp_path: pathlib.Path, capsys):
     """Test DirDiff with two snapshots"""
     d1 = tmp_path / "dir1"
