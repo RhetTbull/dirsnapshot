@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
 <title>dirsnapshot API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="dirsnapshot" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,14 +22,14 @@
 <h1 class="title">Package <code>dirsnapshot</code></h1>
 </header>
 <section id="section-intro">
+<p>dirsnapshot</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import importlib.metadata
+<pre><code class="python">&#34;&#34;&#34;dirsnapshot&#34;&#34;&#34;
 
-__version__ = importlib.metadata.version(&#34;dirsnapshot&#34;)
-
+from ._version import __version__
 from .dirsnapshot import (
     DirDiff,
     DirDiffResults,
@@ -43,6 +43,7 @@ from .dirsnapshot import (
 )
 
 __all__ = [
+    &#34;__version__&#34;,
     &#34;create_snapshot_in_memory&#34;,
     &#34;create_snapshot&#34;,
     &#34;DirDiff&#34;,
@@ -258,19 +259,22 @@ __all__ = [
         self.walk = walk
         self.filter_function = filter_function
 
-    def diff(self) -&gt; DirDiffResults:
+    def diff(
+        self,
+        compare_function: Optional[
+            Callable[[SnapshotRecord, SnapshotRecord], bool]
+        ] = None,
+    ) -&gt; DirDiffResults:
         &#34;&#34;&#34;Compare the current directory or snapshot to the previous snapshot
 
+        Args:
+            `compare_function`: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False
+
         Returns:
-            diff results as DirDiffResults namedtuple
+            diff results as DirDiffResults instance
         &#34;&#34;&#34;
-        self._diff = self._diff_snapshots()
+        self._diff = self._diff_snapshots(compare_function)
         return self._diff
-
-    def json(self, indent=2) -&gt; str:
-        &#34;&#34;&#34;Return the diff results as JSON&#34;&#34;&#34;
-
-        return json.dumps(self.diff()._asdict(), indent=indent)
 
     def report(self, include_identical=False) -&gt; None:
         &#34;&#34;&#34;Print a report of the diff to stdout.
@@ -302,11 +306,39 @@ __all__ = [
             print(&#34;Identical: &#34;)
             print(&#34;\n&#34;.join([f&#34;    {f}&#34; for f in diff.identical]))
 
-    def _diff_snapshots(self) -&gt; DirDiffResults:
+    def compare_records(
+        self, record_a: SnapshotRecord, record_b: SnapshotRecord
+    ) -&gt; bool:
+        &#34;&#34;&#34;The default compare function for DirDiff.diff();
+        override this in your subclass to implement custom compare, or use compare_function arg to diff
+
+        Args:
+            record_a: first SnapshotRecord to compare
+            record_b: second SnapshotRecord to compare
+
+        Returns:
+            True if the records are equal, otherwise False
+        &#34;&#34;&#34;
+        return (
+            record_a.is_dir == record_b.is_dir
+            and record_a.is_file == record_b.is_file
+            and record_a.mode == record_b.mode
+            and record_a.uid == record_b.uid
+            and record_a.gid == record_b.gid
+            and record_a.size == record_b.size
+            and record_a.mtime == record_b.mtime
+        )
+
+    def _diff_snapshots(
+        self,
+        compare_function: Optional[
+            Callable[[SnapshotRecord, SnapshotRecord], bool]
+        ] = None,
+    ) -&gt; DirDiffResults:
         &#34;&#34;&#34;Diff two database snapshots
 
         Returns:
-            DirDiffResults namedtuple
+            DirDiffResults instance
         &#34;&#34;&#34;
         diffresults: Dict = {
             &#34;added&#34;: [],
@@ -314,22 +346,16 @@ __all__ = [
             &#34;modified&#34;: [],
             &#34;identical&#34;: [],
         }
+
+        compare_function = compare_function or self.compare_records
+
         paths_b = {}
         for row_b in self.snapshot_b.records():
             if self.filter_function and not self.filter_function(row_b.path):
                 continue
             paths_b[row_b.path] = 1
             if row_a := self.snapshot_a.record(row_b.path):
-                # TODO: make this a compare function that can be passed in
-                if (
-                    row_a.is_dir != row_b.is_dir
-                    or row_a.is_file != row_b.is_file
-                    or row_a.mode != row_b.mode
-                    or row_a.uid != row_b.uid
-                    or row_a.gid != row_b.gid
-                    or row_a.size != row_b.size
-                    or row_a.mtime != row_b.mtime
-                ):
+                if not compare_function(row_a, row_b):
                     diffresults[&#34;modified&#34;].append(row_b.path)
                 else:
                     diffresults[&#34;identical&#34;].append(row_b.path)
@@ -345,40 +371,78 @@ __all__ = [
 </details>
 <h3>Methods</h3>
 <dl>
+<dt id="dirsnapshot.DirDiff.compare_records"><code class="name flex">
+<span>def <span class="ident">compare_records</span></span>(<span>self, record_a: <a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>, record_b: <a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The default compare function for DirDiff.diff();
+override this in your subclass to implement custom compare, or use compare_function arg to diff</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>record_a</code></strong></dt>
+<dd>first SnapshotRecord to compare</dd>
+<dt><strong><code>record_b</code></strong></dt>
+<dd>second SnapshotRecord to compare</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>True if the records are equal, otherwise False</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compare_records(
+    self, record_a: SnapshotRecord, record_b: SnapshotRecord
+) -&gt; bool:
+    &#34;&#34;&#34;The default compare function for DirDiff.diff();
+    override this in your subclass to implement custom compare, or use compare_function arg to diff
+
+    Args:
+        record_a: first SnapshotRecord to compare
+        record_b: second SnapshotRecord to compare
+
+    Returns:
+        True if the records are equal, otherwise False
+    &#34;&#34;&#34;
+    return (
+        record_a.is_dir == record_b.is_dir
+        and record_a.is_file == record_b.is_file
+        and record_a.mode == record_b.mode
+        and record_a.uid == record_b.uid
+        and record_a.gid == record_b.gid
+        and record_a.size == record_b.size
+        and record_a.mtime == record_b.mtime
+    )</code></pre>
+</details>
+</dd>
 <dt id="dirsnapshot.DirDiff.diff"><code class="name flex">
-<span>def <span class="ident">diff</span></span>(<span>self) ‑> <a title="dirsnapshot.dirsnapshot.DirDiffResults" href="dirsnapshot.html#dirsnapshot.dirsnapshot.DirDiffResults">DirDiffResults</a></span>
+<span>def <span class="ident">diff</span></span>(<span>self, compare_function: Optional[Callable[[<a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>, <a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>], bool]] = None) ‑> <a title="dirsnapshot.dirsnapshot.DirDiffResults" href="dirsnapshot.html#dirsnapshot.dirsnapshot.DirDiffResults">DirDiffResults</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Compare the current directory or snapshot to the previous snapshot</p>
+<h2 id="args">Args</h2>
+<p><code>compare_function</code>: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False</p>
 <h2 id="returns">Returns</h2>
-<p>diff results as DirDiffResults namedtuple</p></div>
+<p>diff results as DirDiffResults instance</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def diff(self) -&gt; DirDiffResults:
+<pre><code class="python">def diff(
+    self,
+    compare_function: Optional[
+        Callable[[SnapshotRecord, SnapshotRecord], bool]
+    ] = None,
+) -&gt; DirDiffResults:
     &#34;&#34;&#34;Compare the current directory or snapshot to the previous snapshot
 
-    Returns:
-        diff results as DirDiffResults namedtuple
-    &#34;&#34;&#34;
-    self._diff = self._diff_snapshots()
-    return self._diff</code></pre>
-</details>
-</dd>
-<dt id="dirsnapshot.DirDiff.json"><code class="name flex">
-<span>def <span class="ident">json</span></span>(<span>self, indent=2) ‑> str</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Return the diff results as JSON</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def json(self, indent=2) -&gt; str:
-    &#34;&#34;&#34;Return the diff results as JSON&#34;&#34;&#34;
+    Args:
+        `compare_function`: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False
 
-    return json.dumps(self.diff()._asdict(), indent=indent)</code></pre>
+    Returns:
+        diff results as DirDiffResults instance
+    &#34;&#34;&#34;
+    self._diff = self._diff_snapshots(compare_function)
+    return self._diff</code></pre>
 </details>
 </dd>
 <dt id="dirsnapshot.DirDiff.report"><code class="name flex">
@@ -430,61 +494,149 @@ __all__ = [
 </dd>
 <dt id="dirsnapshot.DirDiffResults"><code class="flex name class">
 <span>class <span class="ident">DirDiffResults</span></span>
-<span>(</span><span>added, removed, modified, identical)</span>
+<span>(</span><span>added: List[str], removed: List[str], modified: List[str], identical: List[str])</span>
 </code></dt>
 <dd>
-<div class="desc"><p>DirDiffResults(added, removed, modified, identical)</p></div>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>builtins.tuple</li>
-</ul>
-<h3>Instance variables</h3>
+<div class="desc"><p>Results of a directory comparison as returned by DirDiff.diff()</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class DirDiffResults:
+    &#34;&#34;&#34;Results of a directory comparison as returned by DirDiff.diff()&#34;&#34;&#34;
+
+    added: List[str]
+    removed: List[str]
+    modified: List[str]
+    identical: List[str]
+
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    def json(self):
+        return json.dumps(self.asdict())</code></pre>
+</details>
+<h3>Class variables</h3>
 <dl>
-<dt id="dirsnapshot.DirDiffResults.added"><code class="name">var <span class="ident">added</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.added"><code class="name">var <span class="ident">added</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 0</p></div>
+<div class="desc"></div>
 </dd>
-<dt id="dirsnapshot.DirDiffResults.identical"><code class="name">var <span class="ident">identical</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.identical"><code class="name">var <span class="ident">identical</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 3</p></div>
+<div class="desc"></div>
 </dd>
-<dt id="dirsnapshot.DirDiffResults.modified"><code class="name">var <span class="ident">modified</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.modified"><code class="name">var <span class="ident">modified</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 2</p></div>
+<div class="desc"></div>
 </dd>
-<dt id="dirsnapshot.DirDiffResults.removed"><code class="name">var <span class="ident">removed</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.removed"><code class="name">var <span class="ident">removed</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 1</p></div>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dirsnapshot.DirDiffResults.asdict"><code class="name flex">
+<span>def <span class="ident">asdict</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def asdict(self):
+    return dataclasses.asdict(self)</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.json"><code class="name flex">
+<span>def <span class="ident">json</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def json(self):
+    return json.dumps(self.asdict())</code></pre>
+</details>
 </dd>
 </dl>
 </dd>
 <dt id="dirsnapshot.DirDiffResults"><code class="flex name class">
 <span>class <span class="ident">DirSnapshotis_snapshot_file</span></span>
-<span>(</span><span>added, removed, modified, identical)</span>
+<span>(</span><span>added: List[str], removed: List[str], modified: List[str], identical: List[str])</span>
 </code></dt>
 <dd>
-<div class="desc"><p>DirDiffResults(added, removed, modified, identical)</p></div>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>builtins.tuple</li>
-</ul>
-<h3>Instance variables</h3>
+<div class="desc"><p>Results of a directory comparison as returned by DirDiff.diff()</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class DirDiffResults:
+    &#34;&#34;&#34;Results of a directory comparison as returned by DirDiff.diff()&#34;&#34;&#34;
+
+    added: List[str]
+    removed: List[str]
+    modified: List[str]
+    identical: List[str]
+
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    def json(self):
+        return json.dumps(self.asdict())</code></pre>
+</details>
+<h3>Class variables</h3>
 <dl>
-<dt id="dirsnapshot.DirDiffResults.added"><code class="name">var <span class="ident">added</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.added"><code class="name">var <span class="ident">added</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 0</p></div>
+<div class="desc"></div>
 </dd>
-<dt id="dirsnapshot.DirDiffResults.identical"><code class="name">var <span class="ident">identical</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.identical"><code class="name">var <span class="ident">identical</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 3</p></div>
+<div class="desc"></div>
 </dd>
-<dt id="dirsnapshot.DirDiffResults.modified"><code class="name">var <span class="ident">modified</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.modified"><code class="name">var <span class="ident">modified</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 2</p></div>
+<div class="desc"></div>
 </dd>
-<dt id="dirsnapshot.DirDiffResults.removed"><code class="name">var <span class="ident">removed</span></code></dt>
+<dt id="dirsnapshot.DirDiffResults.removed"><code class="name">var <span class="ident">removed</span> : List[str]</code></dt>
 <dd>
-<div class="desc"><p>Alias for field number 1</p></div>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dirsnapshot.DirDiffResults.asdict"><code class="name flex">
+<span>def <span class="ident">asdict</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def asdict(self):
+    return dataclasses.asdict(self)</code></pre>
+</details>
+</dd>
+<dt id="dirsnapshot.DirDiffResults.json"><code class="name flex">
+<span>def <span class="ident">json</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def json(self):
+    return json.dumps(self.asdict())</code></pre>
+</details>
 </dd>
 </dl>
 </dd>
@@ -516,7 +668,7 @@ __all__ = [
 </dd>
 <dt id="dirsnapshot.SnapshotRecord"><code class="flex name class">
 <span>class <span class="ident">SnapshotRecord</span></span>
-<span>(</span><span>path: str, is_dir: bool, is_file: bool, mode: int, uid: int, gid: int, size: int, mtime: int)</span>
+<span>(</span><span>path: str, is_dir: bool, is_file: bool, mode: int, uid: int, gid: int, size: int, mtime: int, user_data: Optional[Any] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Snapshot details for a file or directory.</p>
@@ -538,6 +690,8 @@ __all__ = [
 <dd>size of file or directory in bytes</dd>
 <dt><strong><code>mtime</code></strong></dt>
 <dd>modification time of file or directory</dd>
+<dt><strong><code>user_data</code></strong></dt>
+<dd>optional user data associated with the file or directory</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -556,6 +710,7 @@ class SnapshotRecord:
         gid: group ID of file or directory
         size: size of file or directory in bytes
         mtime: modification time of file or directory
+        user_data: optional user data associated with the file or directory
     &#34;&#34;&#34;
 
     path: str
@@ -566,12 +721,10 @@ class SnapshotRecord:
     gid: int
     size: int
     mtime: int
+    user_data: Optional[Any] = None
 
     def asdict(self):
-        return dataclasses.asdict(self)
-
-    def json(self):
-        return json.dumps(self.asdict())</code></pre>
+        return dataclasses.asdict(self)</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -607,6 +760,10 @@ class SnapshotRecord:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="dirsnapshot.SnapshotRecord.user_data"><code class="name">var <span class="ident">user_data</span> : Optional[Any]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 </dl>
 <h3>Methods</h3>
 <dl>
@@ -621,19 +778,6 @@ class SnapshotRecord:
 </summary>
 <pre><code class="python">def asdict(self):
     return dataclasses.asdict(self)</code></pre>
-</details>
-</dd>
-<dt id="dirsnapshot.SnapshotRecord.json"><code class="name flex">
-<span>def <span class="ident">json</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def json(self):
-    return json.dumps(self.asdict())</code></pre>
 </details>
 </dd>
 </dl>
@@ -664,25 +808,29 @@ class SnapshotRecord:
 <li>
 <h4><code><a title="dirsnapshot.DirDiff" href="#dirsnapshot.DirDiff">DirDiff</a></code></h4>
 <ul class="">
+<li><code><a title="dirsnapshot.DirDiff.compare_records" href="#dirsnapshot.DirDiff.compare_records">compare_records</a></code></li>
 <li><code><a title="dirsnapshot.DirDiff.diff" href="#dirsnapshot.DirDiff.diff">diff</a></code></li>
-<li><code><a title="dirsnapshot.DirDiff.json" href="#dirsnapshot.DirDiff.json">json</a></code></li>
 <li><code><a title="dirsnapshot.DirDiff.report" href="#dirsnapshot.DirDiff.report">report</a></code></li>
 </ul>
 </li>
 <li>
 <h4><code><a title="dirsnapshot.DirDiffResults" href="#dirsnapshot.DirDiffResults">DirDiffResults</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="dirsnapshot.DirDiffResults.added" href="#dirsnapshot.DirDiffResults.added">added</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.asdict" href="#dirsnapshot.DirDiffResults.asdict">asdict</a></code></li>
 <li><code><a title="dirsnapshot.DirDiffResults.identical" href="#dirsnapshot.DirDiffResults.identical">identical</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.json" href="#dirsnapshot.DirDiffResults.json">json</a></code></li>
 <li><code><a title="dirsnapshot.DirDiffResults.modified" href="#dirsnapshot.DirDiffResults.modified">modified</a></code></li>
 <li><code><a title="dirsnapshot.DirDiffResults.removed" href="#dirsnapshot.DirDiffResults.removed">removed</a></code></li>
 </ul>
 </li>
 <li>
 <h4><code><a title="dirsnapshot.DirDiffResults" href="#dirsnapshot.DirDiffResults">DirDiffResults</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="dirsnapshot.DirDiffResults.added" href="#dirsnapshot.DirDiffResults.added">added</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.asdict" href="#dirsnapshot.DirDiffResults.asdict">asdict</a></code></li>
 <li><code><a title="dirsnapshot.DirDiffResults.identical" href="#dirsnapshot.DirDiffResults.identical">identical</a></code></li>
+<li><code><a title="dirsnapshot.DirDiffResults.json" href="#dirsnapshot.DirDiffResults.json">json</a></code></li>
 <li><code><a title="dirsnapshot.DirDiffResults.modified" href="#dirsnapshot.DirDiffResults.modified">modified</a></code></li>
 <li><code><a title="dirsnapshot.DirDiffResults.removed" href="#dirsnapshot.DirDiffResults.removed">removed</a></code></li>
 </ul>
@@ -702,12 +850,12 @@ class SnapshotRecord:
 <li><code><a title="dirsnapshot.SnapshotRecord.gid" href="#dirsnapshot.SnapshotRecord.gid">gid</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.is_dir" href="#dirsnapshot.SnapshotRecord.is_dir">is_dir</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.is_file" href="#dirsnapshot.SnapshotRecord.is_file">is_file</a></code></li>
-<li><code><a title="dirsnapshot.SnapshotRecord.json" href="#dirsnapshot.SnapshotRecord.json">json</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.mode" href="#dirsnapshot.SnapshotRecord.mode">mode</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.mtime" href="#dirsnapshot.SnapshotRecord.mtime">mtime</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.path" href="#dirsnapshot.SnapshotRecord.path">path</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.size" href="#dirsnapshot.SnapshotRecord.size">size</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.uid" href="#dirsnapshot.SnapshotRecord.uid">uid</a></code></li>
+<li><code><a title="dirsnapshot.SnapshotRecord.user_data" href="#dirsnapshot.SnapshotRecord.user_data">user_data</a></code></li>
 </ul>
 </li>
 </ul>

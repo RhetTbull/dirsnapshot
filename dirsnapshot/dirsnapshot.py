@@ -9,7 +9,6 @@ This module can be run as a standalone CLI app or included in your project as a 
 
 import dataclasses
 import datetime
-import importlib.metadata
 import json
 import os
 import sqlite3
@@ -19,13 +18,14 @@ from os import stat as osstat
 from os import walk as oswalk
 from os.path import exists as pathexists
 from os.path import join as joinpath
-from typing import Callable, Dict, Iterator, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+
+from ._version import __version__
 
 # Note: os.stat, os.walk, os.path.exists, os.path.join are imported as separate names
 # because this increases performance slightly and these will be called repeatedly to
 # create the snapshot
 
-__version__ = importlib.metadata.version("dirsnapshot")
 
 __all__ = [
     "create_snapshot_in_memory",
@@ -41,10 +41,6 @@ __all__ = [
 METADATA_SOURCE = "https://github.com/RhetTbull/dirsnapshot"
 METADATA_DESCRIPTION = "Directory Snapshot created by dirsnapshot"
 
-"""Results of a directory comparison as returned by DirDiff.diff()"""
-DirDiffResults = namedtuple(
-    "DirDiffResults", ["added", "removed", "modified", "identical"]
-)
 
 """Info about a snapshot returned by DirSnapshot.info"""
 SnapshotInfo = namedtuple("SnapshotInfo", ["description", "directory", "datetime"])
@@ -148,6 +144,7 @@ class SnapshotRecord:
         gid: group ID of file or directory
         size: size of file or directory in bytes
         mtime: modification time of file or directory
+        user_data: optional user data associated with the file or directory
     """
 
     path: str
@@ -158,12 +155,10 @@ class SnapshotRecord:
     gid: int
     size: int
     mtime: int
+    user_data: Optional[Any] = None
 
     def asdict(self):
         return dataclasses.asdict(self)
-
-    def json(self):
-        return json.dumps(self.asdict())
 
 
 class DirSnapshot:
@@ -251,7 +246,7 @@ class DirSnapshot:
         """Return the snapshot record for a filepath or None if the filepath is not in the snapshot"""
         cursor = self.conn.cursor()
         cursor.execute(
-            "SELECT path, is_dir, is_file, st_mode, st_uid, st_gid, st_size, st_mtime FROM snapshot WHERE path = ?",
+            "SELECT path, is_dir, is_file, st_mode, st_uid, st_gid, st_size, st_mtime, user_data FROM snapshot WHERE path = ?",
             (filepath,),
         )
         results = cursor.fetchone()
@@ -298,7 +293,9 @@ class DirSnapshot:
                 st_uid INTEGER, 
                 st_gid INTEGER, 
                 st_size INTEGER, 
-                st_mtime INTEGER);
+                st_mtime INTEGER,
+                user_data BLOB
+                );
         """
         )
 
@@ -359,7 +356,7 @@ class DirSnapshot:
         is_file: bool,
     ):
         cursor.execute(
-            """INSERT INTO snapshot VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO snapshot VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 pathstr,
                 1 if is_dir else 0,
@@ -369,6 +366,7 @@ class DirSnapshot:
                 statinfo.st_gid,
                 statinfo.st_size,
                 statinfo.st_mtime,
+                b"",
             ),
         )
 
@@ -403,6 +401,22 @@ class DirSnapshot:
                 break
 
         conn.commit()
+
+
+@dataclass
+class DirDiffResults:
+    """Results of a directory comparison as returned by DirDiff.diff()"""
+
+    added: List[str]
+    removed: List[str]
+    modified: List[str]
+    identical: List[str]
+
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    def json(self):
+        return json.dumps(self.asdict())
 
 
 class DirDiff:
@@ -445,19 +459,22 @@ class DirDiff:
         self.walk = walk
         self.filter_function = filter_function
 
-    def diff(self) -> DirDiffResults:
+    def diff(
+        self,
+        compare_function: Optional[
+            Callable[[SnapshotRecord, SnapshotRecord], bool]
+        ] = None,
+    ) -> DirDiffResults:
         """Compare the current directory or snapshot to the previous snapshot
 
+        Args:
+            `compare_function`: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False
+
         Returns:
-            diff results as DirDiffResults namedtuple
+            diff results as DirDiffResults instance
         """
-        self._diff = self._diff_snapshots()
+        self._diff = self._diff_snapshots(compare_function)
         return self._diff
-
-    def json(self, indent=2) -> str:
-        """Return the diff results as JSON"""
-
-        return json.dumps(self.diff()._asdict(), indent=indent)
 
     def report(self, include_identical=False) -> None:
         """Print a report of the diff to stdout.
@@ -489,11 +506,39 @@ class DirDiff:
             print("Identical: ")
             print("\n".join([f"    {f}" for f in diff.identical]))
 
-    def _diff_snapshots(self) -> DirDiffResults:
+    def compare_records(
+        self, record_a: SnapshotRecord, record_b: SnapshotRecord
+    ) -> bool:
+        """The default compare function for DirDiff.diff();
+        override this in your subclass to implement custom compare, or use compare_function arg to diff
+
+        Args:
+            record_a: first SnapshotRecord to compare
+            record_b: second SnapshotRecord to compare
+
+        Returns:
+            True if the records are equal, otherwise False
+        """
+        return (
+            record_a.is_dir == record_b.is_dir
+            and record_a.is_file == record_b.is_file
+            and record_a.mode == record_b.mode
+            and record_a.uid == record_b.uid
+            and record_a.gid == record_b.gid
+            and record_a.size == record_b.size
+            and record_a.mtime == record_b.mtime
+        )
+
+    def _diff_snapshots(
+        self,
+        compare_function: Optional[
+            Callable[[SnapshotRecord, SnapshotRecord], bool]
+        ] = None,
+    ) -> DirDiffResults:
         """Diff two database snapshots
 
         Returns:
-            DirDiffResults namedtuple
+            DirDiffResults instance
         """
         diffresults: Dict = {
             "added": [],
@@ -501,22 +546,16 @@ class DirDiff:
             "modified": [],
             "identical": [],
         }
+
+        compare_function = compare_function or self.compare_records
+
         paths_b = {}
         for row_b in self.snapshot_b.records():
             if self.filter_function and not self.filter_function(row_b.path):
                 continue
             paths_b[row_b.path] = 1
             if row_a := self.snapshot_a.record(row_b.path):
-                # TODO: make this a compare function that can be passed in
-                if (
-                    row_a.is_dir != row_b.is_dir
-                    or row_a.is_file != row_b.is_file
-                    or row_a.mode != row_b.mode
-                    or row_a.uid != row_b.uid
-                    or row_a.gid != row_b.gid
-                    or row_a.size != row_b.size
-                    or row_a.mtime != row_b.mtime
-                ):
+                if not compare_function(row_a, row_b):
                     diffresults["modified"].append(row_b.path)
                 else:
                     diffresults["identical"].append(row_b.path)

@@ -1,8 +1,11 @@
+"""CLI for dirsnapshot"""
+
 import argparse
 import os.path
 import re
 
-from .dirsnapshot import DirDiff, DirDiffResults, is_snapshot_file, create_snapshot
+from ._version import __version__
+from .dirsnapshot import DirDiff, DirDiffResults, create_snapshot, is_snapshot_file
 
 
 def cli():

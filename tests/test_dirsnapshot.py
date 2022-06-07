@@ -1,9 +1,9 @@
 """Test dirsnapshot """
 
+import datetime
 import json
 import pathlib
-from typing import List
-import datetime
+from typing import List, Tuple
 
 import pytest
 
@@ -15,8 +15,8 @@ from dirsnapshot import (
     SnapshotRecord,
     __version__,
     create_snapshot,
-    load_snapshot,
     is_snapshot_file,
+    load_snapshot,
 )
 
 
@@ -40,9 +40,64 @@ def populate_dir(dirpath: pathlib.Path) -> List[str]:
     return [str(f) for f in files]
 
 
-def test_version():
-    """Test version"""
-    assert __version__ == "0.1.0"
+def modify_files(dirpath: pathlib.Path) -> Tuple[List[str], List[str], List[str]]:
+    """Modify files in the test directory for comparing"""
+    # remove a file
+    (dirpath / "file_0").unlink()
+
+    # add a file
+    (dirpath / "file_10").touch()
+
+    # modify a file
+    (dirpath / "file_1").write_text("modified this file by writing text")
+
+    # touch files
+    (dirpath / "file_2").touch()
+    (dirpath / "file_3").touch()
+
+    # modify a file in a subdirectory
+    (dirpath / "dir_0" / "file_0_0").write_text("modified this file by writing text")
+
+    # remove a file in a subdirectory
+    (dirpath / "dir_1" / "file_1_0").unlink()
+
+    # add a file in a subdirectory
+    (dirpath / "dir_0" / "file_0_10").touch()
+
+    # return added, removed, modified
+    return (
+        sorted(
+            [
+                str(f)
+                for f in [
+                    dirpath / "file_10",
+                    dirpath / "dir_0" / "file_0_10",
+                ]
+            ]
+        ),
+        sorted(
+            [
+                str(f)
+                for f in [
+                    dirpath / "file_0",
+                    dirpath / "dir_1" / "file_1_0",
+                ]
+            ]
+        ),
+        sorted(
+            [
+                str(f)
+                for f in [
+                    dirpath / "file_1",
+                    dirpath / "file_2",
+                    dirpath / "file_3",
+                    dirpath / "dir_0" / "file_0_0",
+                    dirpath / "dir_0",
+                    dirpath / "dir_1",
+                ]
+            ]
+        ),
+    )
 
 
 def test_is_snapshot_file(tmp_path: pathlib.Path):
@@ -71,23 +126,8 @@ def test_dirdiff_two_snapshots(tmp_path: pathlib.Path, capsys):
     snapshot_1 = create_snapshot(str(d1), str(snapshot_file1), description="snapshot-1")
     assert snapshot_1.description == "snapshot-1"
 
-    # remove a file
-    (d1 / "file_0").unlink()
-
-    # add a file
-    (d1 / "file_10").touch()
-
-    # modify a file
-    (d1 / "file_1").write_text("modified")
-
-    # modify a file in a subdirectory
-    (d1 / "dir_0" / "file_0_0").write_text("modified")
-
-    # remove a file in a subdirectory
-    (d1 / "dir_1" / "file_1_0").unlink()
-
-    # add a file in a subdirectory
-    (d1 / "dir_0" / "file_0_10").touch()
+    # create some changes
+    added, removed, modified = modify_files(d1)
 
     # snapshot 2
     snapshot_file2 = tmp_path / "2.snapshot"
@@ -100,36 +140,18 @@ def test_dirdiff_two_snapshots(tmp_path: pathlib.Path, capsys):
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
-    assert sorted(diff.removed) == sorted(
-        [str(f) for f in [d1 / "file_0", d1 / "dir_1" / "file_1_0"]]
-    )
-    assert sorted(diff.added) == sorted(
-        [str(f) for f in [d1 / "file_10", d1 / "dir_0" / "file_0_10"]]
-    )
-    assert sorted(diff.modified) == sorted(
-        [
-            str(f)
-            for f in [
-                d1 / "file_1",
-                d1 / "dir_0" / "file_0_0",
-                d1 / "dir_0",
-                d1 / "dir_1",
-            ]
-        ]
-    )
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    assert sorted(diff.modified) == modified
 
-    # remove files we changed/added/removed from files list for comparing identical
-    files.remove(str(d1 / "dir_0"))
-    files.remove(str(d1 / "dir_1"))
-    files.remove(str(d1 / "file_0"))
-    files.remove(str(d1 / "file_1"))
-    files.remove(str(d1 / "dir_0" / "file_0_0"))
-    files.remove(str(d1 / "dir_1" / "file_1_0"))
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
 
     assert sorted(diff.identical) == sorted(files)
 
     # test json
-    json_dict = json.loads(dirdiff.json())
+    json_dict = json.loads(dirdiff.diff().json())
     assert sorted(json_dict["added"]) == sorted(diff.added)
     assert sorted(json_dict["removed"]) == sorted(diff.removed)
     assert sorted(json_dict["modified"]) == sorted(diff.modified)
@@ -153,23 +175,7 @@ def test_dirdiff_two_snapshot_objects(tmp_path: pathlib.Path, capsys):
     snapshot_1 = create_snapshot(str(d1), str(snapshot_file1), description="snapshot-1")
     assert snapshot_1.description == "snapshot-1"
 
-    # remove a file
-    (d1 / "file_0").unlink()
-
-    # add a file
-    (d1 / "file_10").touch()
-
-    # modify a file
-    (d1 / "file_1").write_text("modified")
-
-    # modify a file in a subdirectory
-    (d1 / "dir_0" / "file_0_0").write_text("modified")
-
-    # remove a file in a subdirectory
-    (d1 / "dir_1" / "file_1_0").unlink()
-
-    # add a file in a subdirectory
-    (d1 / "dir_0" / "file_0_10").touch()
+    added, removed, modified = modify_files(d1)
 
     # snapshot 2
     snapshot_file2 = tmp_path / "2.snapshot"
@@ -179,36 +185,18 @@ def test_dirdiff_two_snapshot_objects(tmp_path: pathlib.Path, capsys):
     dirdiff = DirDiff(snapshot_1, snapshot_2)
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
-    assert sorted(diff.removed) == sorted(
-        [str(f) for f in [d1 / "file_0", d1 / "dir_1" / "file_1_0"]]
-    )
-    assert sorted(diff.added) == sorted(
-        [str(f) for f in [d1 / "file_10", d1 / "dir_0" / "file_0_10"]]
-    )
-    assert sorted(diff.modified) == sorted(
-        [
-            str(f)
-            for f in [
-                d1 / "file_1",
-                d1 / "dir_0" / "file_0_0",
-                d1 / "dir_0",
-                d1 / "dir_1",
-            ]
-        ]
-    )
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    assert sorted(diff.modified) == modified
 
-    # remove files we changed/added/removed from files list for comparing identical
-    files.remove(str(d1 / "dir_0"))
-    files.remove(str(d1 / "dir_1"))
-    files.remove(str(d1 / "file_0"))
-    files.remove(str(d1 / "file_1"))
-    files.remove(str(d1 / "dir_0" / "file_0_0"))
-    files.remove(str(d1 / "dir_1" / "file_1_0"))
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
 
     assert sorted(diff.identical) == sorted(files)
 
     # test json
-    json_dict = json.loads(dirdiff.json())
+    json_dict = json.loads(dirdiff.diff().json())
     assert sorted(json_dict["added"]) == sorted(diff.added)
     assert sorted(json_dict["removed"]) == sorted(diff.removed)
     assert sorted(json_dict["modified"]) == sorted(diff.modified)
@@ -231,23 +219,7 @@ def test_dirdiff_snapshot_dir(tmp_path: pathlib.Path):
     snapshot_file1 = tmp_path / "1.snapshot"
     create_snapshot(str(d1), str(snapshot_file1), description="snapshot-1")
 
-    # remove a file
-    (d1 / "file_0").unlink()
-
-    # add a file
-    (d1 / "file_10").touch()
-
-    # modify a file
-    (d1 / "file_1").write_text("modified")
-
-    # modify a file in a subdirectory
-    (d1 / "dir_0" / "file_0_0").write_text("modified")
-
-    # remove a file in a subdirectory
-    (d1 / "dir_1" / "file_1_0").unlink()
-
-    # add a file in a subdirectory
-    (d1 / "dir_0" / "file_0_10").touch()
+    added, removed, modified = modify_files(d1)
 
     dirdiff = DirDiff(
         str(snapshot_file1),
@@ -255,31 +227,13 @@ def test_dirdiff_snapshot_dir(tmp_path: pathlib.Path):
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
-    assert sorted(diff.removed) == sorted(
-        [str(f) for f in [d1 / "file_0", d1 / "dir_1" / "file_1_0"]]
-    )
-    assert sorted(diff.added) == sorted(
-        [str(f) for f in [d1 / "file_10", d1 / "dir_0" / "file_0_10"]]
-    )
-    assert sorted(diff.modified) == sorted(
-        [
-            str(f)
-            for f in [
-                d1 / "file_1",
-                d1 / "dir_0" / "file_0_0",
-                d1 / "dir_0",
-                d1 / "dir_1",
-            ]
-        ]
-    )
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    assert sorted(diff.modified) == modified
 
-    # remove files we changed/added/removed from files list for comparing identical
-    files.remove(str(d1 / "dir_0"))
-    files.remove(str(d1 / "dir_1"))
-    files.remove(str(d1 / "file_0"))
-    files.remove(str(d1 / "file_1"))
-    files.remove(str(d1 / "dir_0" / "file_0_0"))
-    files.remove(str(d1 / "dir_1" / "file_1_0"))
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
 
     assert sorted(diff.identical) == sorted(files)
 
@@ -294,23 +248,7 @@ def test_dirdiff_filter_function_two_snapshots(tmp_path: pathlib.Path):
     snapshot_file1 = tmp_path / "1.snapshot"
     create_snapshot(str(d1), str(snapshot_file1))
 
-    # remove a file
-    (d1 / "file_0").unlink()
-
-    # add a file
-    (d1 / "file_10").touch()
-
-    # modify a file
-    (d1 / "file_1").write_text("modified")
-
-    # modify a file in a subdirectory
-    (d1 / "dir_0" / "file_0_0").write_text("modified")
-
-    # remove a file in a subdirectory
-    (d1 / "dir_1" / "file_1_0").unlink()
-
-    # add a file in a subdirectory
-    (d1 / "dir_0" / "file_0_10").touch()
+    added, removed, modified = modify_files(d1)
 
     # snapshot 2
     snapshot_file2 = tmp_path / "2.snapshot"
@@ -322,6 +260,10 @@ def test_dirdiff_filter_function_two_snapshots(tmp_path: pathlib.Path):
             return False
         return True
 
+    # remove file_1 as the filter function will ignore it
+    modified.remove(str(d1 / "file_1"))
+    files.remove(str(d1 / "file_1"))
+
     dirdiff = DirDiff(
         str(snapshot_file1),
         str(snapshot_file2),
@@ -329,30 +271,13 @@ def test_dirdiff_filter_function_two_snapshots(tmp_path: pathlib.Path):
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
-    assert sorted(diff.removed) == sorted(
-        [str(f) for f in [d1 / "file_0", d1 / "dir_1" / "file_1_0"]]
-    )
-    assert sorted(diff.added) == sorted(
-        [str(f) for f in [d1 / "file_10", d1 / "dir_0" / "file_0_10"]]
-    )
-    assert sorted(diff.modified) == sorted(
-        [
-            str(f)
-            for f in [
-                d1 / "dir_0" / "file_0_0",
-                d1 / "dir_0",
-                d1 / "dir_1",
-            ]
-        ]
-    )
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    assert sorted(diff.modified) == modified
 
-    # remove files we changed/added/removed from files list for comparing identical
-    files.remove(str(d1 / "dir_0"))
-    files.remove(str(d1 / "dir_1"))
-    files.remove(str(d1 / "file_0"))
-    files.remove(str(d1 / "dir_0" / "file_0_0"))
-    files.remove(str(d1 / "file_1"))
-    files.remove(str(d1 / "dir_1" / "file_1_0"))
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
 
     assert sorted(diff.identical) == sorted(files)
 
@@ -367,29 +292,17 @@ def test_dirdiff_filter_function_snapshot_dir(tmp_path: pathlib.Path):
     snapshot_file1 = tmp_path / "1.snapshot"
     create_snapshot(str(d1), str(snapshot_file1))
 
-    # remove a file
-    (d1 / "file_0").unlink()
-
-    # add a file
-    (d1 / "file_10").touch()
-
-    # modify a file
-    (d1 / "file_1").write_text("modified")
-
-    # modify a file in a subdirectory
-    (d1 / "dir_0" / "file_0_0").write_text("modified")
-
-    # remove a file in a subdirectory
-    (d1 / "dir_1" / "file_1_0").unlink()
-
-    # add a file in a subdirectory
-    (d1 / "dir_0" / "file_0_10").touch()
+    added, removed, modified = modify_files(d1)
 
     def filter_function(path):
         path = pathlib.Path(path)
         if path.name == "file_1":
             return False
         return True
+
+    # remove file_1 as the filter function will ignore it
+    modified.remove(str(d1 / "file_1"))
+    files.remove(str(d1 / "file_1"))
 
     dirdiff = DirDiff(
         str(snapshot_file1),
@@ -398,30 +311,13 @@ def test_dirdiff_filter_function_snapshot_dir(tmp_path: pathlib.Path):
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
-    assert sorted(diff.removed) == sorted(
-        [str(f) for f in [d1 / "file_0", d1 / "dir_1" / "file_1_0"]]
-    )
-    assert sorted(diff.added) == sorted(
-        [str(f) for f in [d1 / "file_10", d1 / "dir_0" / "file_0_10"]]
-    )
-    assert sorted(diff.modified) == sorted(
-        [
-            str(f)
-            for f in [
-                d1 / "dir_0" / "file_0_0",
-                d1 / "dir_0",
-                d1 / "dir_1",
-            ]
-        ]
-    )
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    assert sorted(diff.modified) == modified
 
-    # remove files we changed/added/removed from files list for comparing identical
-    files.remove(str(d1 / "dir_0"))
-    files.remove(str(d1 / "dir_1"))
-    files.remove(str(d1 / "file_0"))
-    files.remove(str(d1 / "dir_0" / "file_0_0"))
-    files.remove(str(d1 / "file_1"))
-    files.remove(str(d1 / "dir_1" / "file_1_0"))
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
 
     assert sorted(diff.identical) == sorted(files)
 
@@ -442,27 +338,15 @@ def test_snapshot_filter_function(tmp_path: pathlib.Path):
     snapshot_file1 = tmp_path / "1.snapshot"
     create_snapshot(str(d1), str(snapshot_file1), filter_function=filter_function)
 
-    # remove a file
-    (d1 / "file_0").unlink()
-
-    # add a file
-    (d1 / "file_10").touch()
-
-    # modify a file
-    (d1 / "file_1").write_text("modified")
-
-    # modify a file in a subdirectory
-    (d1 / "dir_0" / "file_0_0").write_text("modified")
-
-    # remove a file in a subdirectory
-    (d1 / "dir_1" / "file_1_0").unlink()
-
-    # add a file in a subdirectory
-    (d1 / "dir_0" / "file_0_10").touch()
+    added, removed, modified = modify_files(d1)
 
     # snapshot 2
     snapshot_file2 = tmp_path / "2.snapshot"
     create_snapshot(str(d1), str(snapshot_file2), filter_function=filter_function)
+
+    # remove file_1 as the filter function will ignore it
+    modified.remove(str(d1 / "file_1"))
+    files.remove(str(d1 / "file_1"))
 
     dirdiff = DirDiff(
         str(snapshot_file1),
@@ -470,30 +354,13 @@ def test_snapshot_filter_function(tmp_path: pathlib.Path):
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
-    assert sorted(diff.removed) == sorted(
-        [str(f) for f in [d1 / "file_0", d1 / "dir_1" / "file_1_0"]]
-    )
-    assert sorted(diff.added) == sorted(
-        [str(f) for f in [d1 / "file_10", d1 / "dir_0" / "file_0_10"]]
-    )
-    assert sorted(diff.modified) == sorted(
-        [
-            str(f)
-            for f in [
-                d1 / "dir_0" / "file_0_0",
-                d1 / "dir_0",
-                d1 / "dir_1",
-            ]
-        ]
-    )
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    assert sorted(diff.modified) == modified
 
-    # remove files we changed/added/removed from files list for comparing identical
-    files.remove(str(d1 / "dir_0"))
-    files.remove(str(d1 / "dir_1"))
-    files.remove(str(d1 / "file_0"))
-    files.remove(str(d1 / "dir_0" / "file_0_0"))
-    files.remove(str(d1 / "file_1"))
-    files.remove(str(d1 / "dir_1" / "file_1_0"))
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
 
     assert sorted(diff.identical) == sorted(files)
 
@@ -508,23 +375,20 @@ def test_snapshot_no_walk(tmp_path: pathlib.Path):
     snapshot_file1 = tmp_path / "1.snapshot"
     create_snapshot(str(d1), str(snapshot_file1), walk=False)
 
-    # remove a file
-    (d1 / "file_0").unlink()
+    added, removed, modified = modify_files(d1)
 
-    # add a file
-    (d1 / "file_10").touch()
-
-    # modify a file
-    (d1 / "file_1").write_text("modified")
-
-    # modify a file in a subdirectory
-    (d1 / "dir_0" / "file_0_0").write_text("modified")
-
-    # remove a file in a subdirectory
-    (d1 / "dir_1" / "file_1_0").unlink()
-
-    # add a file in a subdirectory
-    (d1 / "dir_0" / "file_0_10").touch()
+    # filter out files in subdirs since walk=False will filter these out
+    added = [
+        f for f in added if pathlib.Path(f).parent not in [d1 / "dir_0", d1 / "dir_1"]
+    ]
+    removed = [
+        f for f in removed if pathlib.Path(f).parent not in [d1 / "dir_0", d1 / "dir_1"]
+    ]
+    modified = [
+        f
+        for f in modified
+        if pathlib.Path(f).parent not in [d1 / "dir_0", d1 / "dir_1"]
+    ]
 
     # snapshot 2
     snapshot_file2 = tmp_path / "2.snapshot"
@@ -536,21 +400,73 @@ def test_snapshot_no_walk(tmp_path: pathlib.Path):
     )
     diff = dirdiff.diff()
     assert isinstance(diff, DirDiffResults)
-    assert sorted(diff.removed) == sorted([str(f) for f in [d1 / "file_0"]])
-    assert sorted(diff.added) == sorted([str(f) for f in [d1 / "file_10"]])
-    assert sorted(diff.modified) == sorted(
-        [str(f) for f in [d1 / "file_1", d1 / "dir_0", d1 / "dir_1"]]
-    )
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    assert sorted(diff.modified) == modified
 
-    # remove files we changed/added/removed from files list for comparing identical
-    files.remove(str(d1 / "dir_0"))
-    files.remove(str(d1 / "dir_1"))
-    files.remove(str(d1 / "file_0"))
-    files.remove(str(d1 / "file_1"))
-    files = [f for f in files if pathlib.Path(f).parent != d1 / "dir_0"]
-    files = [f for f in files if pathlib.Path(f).parent != d1 / "dir_1"]
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
+    files = [
+        f for f in files if pathlib.Path(f).parent not in [d1 / "dir_0", d1 / "dir_1"]
+    ]
 
     assert sorted(diff.identical) == sorted(files)
+
+
+def test_dirdiff_compare_function(tmp_path: pathlib.Path, capsys):
+    """Test DirDiff with custom compare function"""
+    d1 = tmp_path / "dir1"
+    d1.mkdir()
+    files = populate_dir(d1)
+
+    # snapshot 1
+    snapshot_file1 = tmp_path / "1.snapshot"
+    snapshot_1 = create_snapshot(str(d1), str(snapshot_file1), description="snapshot-1")
+    assert snapshot_1.description == "snapshot-1"
+
+    added, removed, _ = modify_files(d1)
+
+    # snapshot 2
+    snapshot_file2 = tmp_path / "2.snapshot"
+    snapshot_2 = create_snapshot(str(d1), str(snapshot_file2), description="snapshot-2")
+    assert snapshot_2.description == "snapshot-2"
+
+    def compare_function(record_1: SnapshotRecord, record_2: SnapshotRecord):
+        # files are equal if size is the same
+        return record_1.size == record_2.size
+
+    dirdiff = DirDiff(snapshot_1, snapshot_2)
+    diff = dirdiff.diff(compare_function=compare_function)
+    assert isinstance(diff, DirDiffResults)
+    assert sorted(diff.removed) == removed
+    assert sorted(diff.added) == added
+    # only list files that are not equal size
+    modified = sorted(
+        [
+            str(f)
+            for f in [
+                d1 / "file_1",
+                d1 / "dir_0" / "file_0_0",
+                d1 / "dir_0",
+                d1 / "dir_1",
+            ]
+        ]
+    )
+    assert sorted(diff.modified) == modified
+
+    # remove files we changed/removed from files list for comparing identical
+    for f in removed + modified:
+        files.remove(f)
+
+    assert sorted(diff.identical) == sorted(files)
+
+    # test json
+    json_dict = json.loads(dirdiff.diff(compare_function=compare_function).json())
+    assert sorted(json_dict["added"]) == sorted(diff.added)
+    assert sorted(json_dict["removed"]) == sorted(diff.removed)
+    assert sorted(json_dict["modified"]) == sorted(diff.modified)
+    assert sorted(json_dict["identical"]) == sorted(diff.identical)
 
 
 def test_dirdiff_valuerror(tmp_path: pathlib.Path):
@@ -620,9 +536,6 @@ def test_dirsnapshot(tmp_path: pathlib.Path):
     record_dict = record.asdict()
     assert record_dict["path"] == str(d1 / "file_0")
 
-    record_dict2 = json.loads(record.json())
-    assert record_dict2["path"] == str(d1 / "file_0")
-
     records = list(snapshot.records())
     assert len(records) == len(files)
 
@@ -656,9 +569,6 @@ def test_dirsnapshot_load(tmp_path: pathlib.Path):
 
     record_dict = record.asdict()
     assert record_dict["path"] == str(d1 / "file_0")
-
-    record_dict2 = json.loads(record.json())
-    assert record_dict2["path"] == str(d1 / "file_0")
 
     records = list(snapshot.records())
     assert len(records) == len(files)
