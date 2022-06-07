@@ -582,3 +582,16 @@ def test_dirsnapshot_load(tmp_path: pathlib.Path):
 
     records = list(snapshot.records())
     assert len(records) == len(files)
+
+
+def test_dirsnapshot_len(tmp_path: pathlib.Path):
+    """Test DirSnapshot length"""
+    d1 = tmp_path / "dir1"
+    d1.mkdir()
+    files = populate_dir(d1)
+
+    snapshot_db = tmp_path / "snapshot.db"
+    snapshot = create_snapshot(
+        str(d1), snapshot_db, walk=True, description="Test Snapshot"
+    )
+    assert len(snapshot) == len(files)

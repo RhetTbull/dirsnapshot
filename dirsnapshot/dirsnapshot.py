@@ -384,6 +384,9 @@ class DirSnapshot:
 
         conn.commit()
 
+    def __len__(self):
+        return self.conn.execute("SELECT COUNT(*) FROM snapshot").fetchone()[0]
+
 
 @dataclass
 class DirDiffResults:
