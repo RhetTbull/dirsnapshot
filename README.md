@@ -108,7 +108,8 @@ CREATE TABLE snapshot (
                 st_uid INTEGER,
                 st_gid INTEGER,
                 st_size INTEGER,
-                st_mtime INTEGER);
+                st_mtime INTEGER,
+                user_data BLOB);
 CREATE TABLE _metadata (
                 description TEXT, source TEXT, version TEXT, created_at DATETIME);
 CREATE TABLE about (
