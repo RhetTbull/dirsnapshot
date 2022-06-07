@@ -11,6 +11,7 @@ import dataclasses
 import datetime
 import json
 import os
+import pathlib
 import sqlite3
 from collections import namedtuple
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from os import stat as osstat
 from os import walk as oswalk
 from os.path import exists as pathexists
 from os.path import join as joinpath
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 from ._version import __version__
@@ -50,7 +52,7 @@ def create_snapshot(
     snapshot_db: Optional[str],
     walk: bool = True,
     description: Optional[str] = None,
-    filter_function: Optional[Callable[[str], bool]] = None,
+    filter_function: Optional[Callable[[pathlib.Path], bool]] = None,
 ) -> "DirSnapshot":
     """Factory function to create a snapshot of a directory
 
@@ -138,6 +140,11 @@ class SnapshotRecord:
     mtime: int
     user_data: Optional[Any] = None
 
+    @property
+    def Path(self) -> pathlib.Path:
+        """pathlib.Path object for the file or directory"""
+        return Path(self.path)
+
     def asdict(self):
         """Return a dict representation of the snapshot record"""
         return dataclasses.asdict(self)
@@ -155,7 +162,7 @@ class DirSnapshot:
         snapshot_db: str,
         walk: bool = True,
         description: Optional[str] = None,
-        filter_function: Optional[Callable[[str], bool]] = None,
+        filter_function: Optional[Callable[[pathlib.Path], bool]] = None,
     ):
         """Create a snapshot from a directory
 
@@ -358,12 +365,12 @@ class DirSnapshot:
         walk: bool,
         conn: sqlite3.Connection,
         cursor: sqlite3.Cursor,
-        filter_function: Callable[[str], bool] = None,
+        filter_function: Callable[[pathlib.Path], bool] = None,
     ):
         for current_dirpath, dirnames, filenames in oswalk(dirpath):
             for dirname in dirnames:
                 pathstr = joinpath(current_dirpath, dirname)
-                if filter_function and not filter_function(pathstr):
+                if filter_function and not filter_function(Path(pathstr)):
                     continue
                 statinfo = osstat(pathstr)
                 self._add_snapshot_db_entry(
@@ -372,7 +379,7 @@ class DirSnapshot:
 
             for filename in filenames:
                 pathstr = joinpath(current_dirpath, filename)
-                if filter_function and not filter_function(pathstr):
+                if filter_function and not filter_function(Path(pathstr)):
                     continue
                 statinfo = osstat(pathstr)
                 self._add_snapshot_db_entry(
@@ -410,7 +417,7 @@ class DirDiff:
         snapshot_a: Union[str, DirSnapshot],
         directory_or_snapshot_b: Union[str, DirSnapshot],
         walk: bool = True,
-        filter_function: Optional[Callable[[str], bool]] = None,
+        filter_function: Optional[Callable[[pathlib.Path], bool]] = None,
     ):
         """Initialize the DirDiff instance
 
@@ -539,7 +546,7 @@ class DirDiff:
 
         paths_b = {}
         for row_b in self.snapshot_b.records():
-            if self.filter_function and not self.filter_function(row_b.path):
+            if self.filter_function and not self.filter_function(row_b.Path):
                 continue
             if not dirs and row_b.is_dir:
                 continue
@@ -552,7 +559,7 @@ class DirDiff:
             else:
                 diffresults["added"].append(row_b.path)
         for row_a in self.snapshot_a.records():
-            if self.filter_function and not self.filter_function(row_a.path):
+            if self.filter_function and not self.filter_function(row_a.Path):
                 continue
             if not dirs and row_a.is_dir:
                 continue

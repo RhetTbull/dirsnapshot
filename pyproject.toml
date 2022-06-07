@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dirsnapshot"
-version = "0.4.0"
+version = "0.5.0"
 description = "Report differences between a directory and a previous snapshot of the same directory."
 authors = ["Rhet Turnbull <rturnbull+git@gmail.com>"]
 license = "MIT"

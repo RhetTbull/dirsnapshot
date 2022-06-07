@@ -69,7 +69,7 @@ __all__ = [
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="dirsnapshot.create_snapshot"><code class="name flex">
-<span>def <span class="ident">create_snapshot</span></span>(<span>dirpath: str, snapshot_db: Optional[str], walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
+<span>def <span class="ident">create_snapshot</span></span>(<span>dirpath: str, snapshot_db: Optional[str], walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[pathlib.Path], bool]] = None) ‑> dirsnapshot.dirsnapshot.DirSnapshot</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Factory function to create a snapshot of a directory</p>
@@ -99,7 +99,7 @@ __all__ = [
     snapshot_db: Optional[str],
     walk: bool = True,
     description: Optional[str] = None,
-    filter_function: Optional[Callable[[str], bool]] = None,
+    filter_function: Optional[Callable[[pathlib.Path], bool]] = None,
 ) -&gt; &#34;DirSnapshot&#34;:
     &#34;&#34;&#34;Factory function to create a snapshot of a directory
 
@@ -193,7 +193,7 @@ __all__ = [
 <dl>
 <dt id="dirsnapshot.DirDiff"><code class="flex name class">
 <span>class <span class="ident">DirDiff</span></span>
-<span>(</span><span>snapshot_a: Union[str, dirsnapshot.dirsnapshot.DirSnapshot], directory_or_snapshot_b: Union[str, dirsnapshot.dirsnapshot.DirSnapshot], walk: bool = True, filter_function: Optional[Callable[[str], bool]] = None)</span>
+<span>(</span><span>snapshot_a: Union[str, dirsnapshot.dirsnapshot.DirSnapshot], directory_or_snapshot_b: Union[str, dirsnapshot.dirsnapshot.DirSnapshot], walk: bool = True, filter_function: Optional[Callable[[pathlib.Path], bool]] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Initialize the DirDiff instance</p>
@@ -216,7 +216,7 @@ __all__ = [
         snapshot_a: Union[str, DirSnapshot],
         directory_or_snapshot_b: Union[str, DirSnapshot],
         walk: bool = True,
-        filter_function: Optional[Callable[[str], bool]] = None,
+        filter_function: Optional[Callable[[pathlib.Path], bool]] = None,
     ):
         &#34;&#34;&#34;Initialize the DirDiff instance
 
@@ -252,6 +252,7 @@ __all__ = [
 
     def diff(
         self,
+        dirs: bool = True,
         compare_function: Optional[
             Callable[[SnapshotRecord, SnapshotRecord], bool]
         ] = None,
@@ -259,12 +260,13 @@ __all__ = [
         &#34;&#34;&#34;Compare the current directory or snapshot to the previous snapshot
 
         Args:
+            `dirs`: if True, includes directories in the comparison, otherwise only files are compared (if dirs==True, directories will show as modified if any file contained in the directory has been modified)
             `compare_function`: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False
 
         Returns:
             diff results as DirDiffResults instance
         &#34;&#34;&#34;
-        self._diff = self._diff_snapshots(compare_function)
+        self._diff = self._diff_snapshots(dirs, compare_function)
         return self._diff
 
     def report(self, include_identical=False) -&gt; None:
@@ -322,6 +324,7 @@ __all__ = [
 
     def _diff_snapshots(
         self,
+        dirs: bool,
         compare_function: Optional[
             Callable[[SnapshotRecord, SnapshotRecord], bool]
         ] = None,
@@ -342,7 +345,9 @@ __all__ = [
 
         paths_b = {}
         for row_b in self.snapshot_b.records():
-            if self.filter_function and not self.filter_function(row_b.path):
+            if self.filter_function and not self.filter_function(row_b.Path):
+                continue
+            if not dirs and row_b.is_dir:
                 continue
             paths_b[row_b.path] = 1
             if row_a := self.snapshot_a.record(row_b.path):
@@ -353,7 +358,9 @@ __all__ = [
             else:
                 diffresults[&#34;added&#34;].append(row_b.path)
         for row_a in self.snapshot_a.records():
-            if self.filter_function and not self.filter_function(row_a.path):
+            if self.filter_function and not self.filter_function(row_a.Path):
+                continue
+            if not dirs and row_a.is_dir:
                 continue
             if row_a.path not in paths_b:
                 diffresults[&#34;removed&#34;].append(row_a.path)
@@ -406,12 +413,13 @@ override this in your subclass to implement custom compare, or use compare_funct
 </details>
 </dd>
 <dt id="dirsnapshot.DirDiff.diff"><code class="name flex">
-<span>def <span class="ident">diff</span></span>(<span>self, compare_function: Optional[Callable[[<a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>, <a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>], bool]] = None) ‑> <a title="dirsnapshot.dirsnapshot.DirDiffResults" href="dirsnapshot.html#dirsnapshot.dirsnapshot.DirDiffResults">DirDiffResults</a></span>
+<span>def <span class="ident">diff</span></span>(<span>self, dirs: bool = True, compare_function: Optional[Callable[[<a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>, <a title="dirsnapshot.dirsnapshot.SnapshotRecord" href="dirsnapshot.html#dirsnapshot.dirsnapshot.SnapshotRecord">SnapshotRecord</a>], bool]] = None) ‑> <a title="dirsnapshot.dirsnapshot.DirDiffResults" href="dirsnapshot.html#dirsnapshot.dirsnapshot.DirDiffResults">DirDiffResults</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Compare the current directory or snapshot to the previous snapshot</p>
 <h2 id="args">Args</h2>
-<p><code>compare_function</code>: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False</p>
+<p><code>dirs</code>: if True, includes directories in the comparison, otherwise only files are compared (if dirs==True, directories will show as modified if any file contained in the directory has been modified)
+<code>compare_function</code>: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False</p>
 <h2 id="returns">Returns</h2>
 <p>diff results as DirDiffResults instance</p></div>
 <details class="source">
@@ -420,6 +428,7 @@ override this in your subclass to implement custom compare, or use compare_funct
 </summary>
 <pre><code class="python">def diff(
     self,
+    dirs: bool = True,
     compare_function: Optional[
         Callable[[SnapshotRecord, SnapshotRecord], bool]
     ] = None,
@@ -427,12 +436,13 @@ override this in your subclass to implement custom compare, or use compare_funct
     &#34;&#34;&#34;Compare the current directory or snapshot to the previous snapshot
 
     Args:
+        `dirs`: if True, includes directories in the comparison, otherwise only files are compared (if dirs==True, directories will show as modified if any file contained in the directory has been modified)
         `compare_function`: optional function to filter the results, receives a pair of SnapshotRecords and returns True if the pair are equal, otherwise False
 
     Returns:
         diff results as DirDiffResults instance
     &#34;&#34;&#34;
-    self._diff = self._diff_snapshots(compare_function)
+    self._diff = self._diff_snapshots(dirs, compare_function)
     return self._diff</code></pre>
 </details>
 </dd>
@@ -578,7 +588,7 @@ class DirDiffResults:
         snapshot_db: str,
         walk: bool = True,
         description: Optional[str] = None,
-        filter_function: Optional[Callable[[str], bool]] = None,
+        filter_function: Optional[Callable[[pathlib.Path], bool]] = None,
     ):
         &#34;&#34;&#34;Create a snapshot from a directory
 
@@ -781,12 +791,12 @@ class DirDiffResults:
         walk: bool,
         conn: sqlite3.Connection,
         cursor: sqlite3.Cursor,
-        filter_function: Callable[[str], bool] = None,
+        filter_function: Callable[[pathlib.Path], bool] = None,
     ):
         for current_dirpath, dirnames, filenames in oswalk(dirpath):
             for dirname in dirnames:
                 pathstr = joinpath(current_dirpath, dirname)
-                if filter_function and not filter_function(pathstr):
+                if filter_function and not filter_function(Path(pathstr)):
                     continue
                 statinfo = osstat(pathstr)
                 self._add_snapshot_db_entry(
@@ -795,7 +805,7 @@ class DirDiffResults:
 
             for filename in filenames:
                 pathstr = joinpath(current_dirpath, filename)
-                if filter_function and not filter_function(pathstr):
+                if filter_function and not filter_function(Path(pathstr)):
                     continue
                 statinfo = osstat(pathstr)
                 self._add_snapshot_db_entry(
@@ -805,7 +815,10 @@ class DirDiffResults:
                 # don&#39;t continue walking the the tree
                 break
 
-        conn.commit()</code></pre>
+        conn.commit()
+
+    def __len__(self):
+        return self.conn.execute(&#34;SELECT COUNT(*) FROM snapshot&#34;).fetchone()[0]</code></pre>
 </details>
 <h3>Instance variables</h3>
 <dl>
@@ -893,7 +906,7 @@ def info(self) -&gt; SnapshotInfo:
 </details>
 </dd>
 <dt id="dirsnapshot.DirSnapshot.init_from_dir"><code class="name flex">
-<span>def <span class="ident">init_from_dir</span></span>(<span>self, dirpath: str, snapshot_db: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[str], bool]] = None)</span>
+<span>def <span class="ident">init_from_dir</span></span>(<span>self, dirpath: str, snapshot_db: str, walk: bool = True, description: Optional[str] = None, filter_function: Optional[Callable[[pathlib.Path], bool]] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Create a snapshot from a directory</p>
@@ -920,7 +933,7 @@ def info(self) -&gt; SnapshotInfo:
     snapshot_db: str,
     walk: bool = True,
     description: Optional[str] = None,
-    filter_function: Optional[Callable[[str], bool]] = None,
+    filter_function: Optional[Callable[[pathlib.Path], bool]] = None,
 ):
     &#34;&#34;&#34;Create a snapshot from a directory
 
@@ -1095,6 +1108,11 @@ class SnapshotRecord:
     mtime: int
     user_data: Optional[Any] = None
 
+    @property
+    def Path(self) -&gt; pathlib.Path:
+        &#34;&#34;&#34;pathlib.Path object for the file or directory&#34;&#34;&#34;
+        return Path(self.path)
+
     def asdict(self):
         &#34;&#34;&#34;Return a dict representation of the snapshot record&#34;&#34;&#34;
         return dataclasses.asdict(self)</code></pre>
@@ -1136,6 +1154,22 @@ class SnapshotRecord:
 <dt id="dirsnapshot.SnapshotRecord.user_data"><code class="name">var <span class="ident">user_data</span> : Optional[Any]</code></dt>
 <dd>
 <div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="dirsnapshot.SnapshotRecord.Path"><code class="name">var <span class="ident">Path</span> : pathlib.Path</code></dt>
+<dd>
+<div class="desc"><p>pathlib.Path object for the file or directory</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def Path(self) -&gt; pathlib.Path:
+    &#34;&#34;&#34;pathlib.Path object for the file or directory&#34;&#34;&#34;
+    return Path(self.path)</code></pre>
+</details>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -1223,6 +1257,7 @@ class SnapshotRecord:
 <li>
 <h4><code><a title="dirsnapshot.SnapshotRecord" href="#dirsnapshot.SnapshotRecord">SnapshotRecord</a></code></h4>
 <ul class="two-column">
+<li><code><a title="dirsnapshot.SnapshotRecord.Path" href="#dirsnapshot.SnapshotRecord.Path">Path</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.asdict" href="#dirsnapshot.SnapshotRecord.asdict">asdict</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.gid" href="#dirsnapshot.SnapshotRecord.gid">gid</a></code></li>
 <li><code><a title="dirsnapshot.SnapshotRecord.is_dir" href="#dirsnapshot.SnapshotRecord.is_dir">is_dir</a></code></li>

@@ -299,7 +299,6 @@ def test_dirdiff_filter_function_two_snapshots(tmp_path: pathlib.Path):
     create_snapshot(str(d1), str(snapshot_file2))
 
     def filter_function(path):
-        path = pathlib.Path(path)
         if path.name == "file_1":
             return False
         return True
@@ -339,7 +338,6 @@ def test_dirdiff_filter_function_snapshot_dir(tmp_path: pathlib.Path):
     added, removed, modified = modify_files(d1)
 
     def filter_function(path):
-        path = pathlib.Path(path)
         if path.name == "file_1":
             return False
         return True
@@ -372,21 +370,19 @@ def test_snapshot_filter_function(tmp_path: pathlib.Path):
     d1.mkdir()
     files = populate_dir(d1)
 
-    def filter_function(path):
-        path = pathlib.Path(path)
-        if path.name == "file_1":
-            return False
-        return True
-
     # snapshot 1
     snapshot_file1 = tmp_path / "1.snapshot"
-    create_snapshot(str(d1), str(snapshot_file1), filter_function=filter_function)
+    create_snapshot(
+        str(d1), str(snapshot_file1), filter_function=lambda p: p.name != "file_1"
+    )
 
     added, removed, modified = modify_files(d1)
 
     # snapshot 2
     snapshot_file2 = tmp_path / "2.snapshot"
-    create_snapshot(str(d1), str(snapshot_file2), filter_function=filter_function)
+    create_snapshot(
+        str(d1), str(snapshot_file2), filter_function=lambda p: p.name != "file_1"
+    )
 
     # remove file_1 as the filter function will ignore it
     modified.remove(str(d1 / "file_1"))
