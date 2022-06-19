@@ -26,6 +26,8 @@ jobs:
         name: Install Python ${{ matrix.python_version }}
         with:
           python-version: ${{ matrix.python_version }}
+      -name: Install nox-poetry
+        run: python -m pip install nox
 
       - name: Run nox
-        run: pipx run nox
+        run: pipx run --pip-args "install nox-poetry" nox
