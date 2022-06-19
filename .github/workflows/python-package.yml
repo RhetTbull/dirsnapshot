@@ -28,4 +28,4 @@ jobs:
           python-version: ${{ matrix.python_version }}
 
       - name: Run nox
-        run: pipx run --pip-args "install nox-poetry" nox
+        run: pipx run --pip-args "install poetry" --pip-args "install nox-poetry" nox
