@@ -26,7 +26,6 @@ jobs:
         name: Install Python ${{ matrix.python_version }}
         with:
           python-version: ${{ matrix.python_version }}
-          cache: "pip"
 
       - name: Run nox
         run: pipx run nox
