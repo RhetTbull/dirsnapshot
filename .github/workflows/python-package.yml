@@ -22,6 +22,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: excitedleigh/setup-nox@v2.0.0
       - uses: actions/setup-python@v4
         name: Install Python ${{ matrix.python_version }}
         with:
